@@ -264,7 +264,19 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
     response[0] = '\0';     // clear response buffer
 
 
-    if ( strcmp(command, "LOGIN")==0 ) {
+    if ( command==NULL ) {
+        /* If command is empty */
+        if (user->user_id==-1) {
+            // if not logged in, display with login command
+            sprintf(response, "-> INVALID COMMAND! Login with:\nLOGIN <user_name> <password>");
+        } else {
+            // if logged in, display only error message
+            sprintf(response, "-> INVALID COMMAND!");
+        }
+        return -1;
+
+        
+    } else if ( strcmp(command, "LOGIN")==0 ) {
         /* Log in user (LOGIN <username> <password>) */
         arg1 = strtok(NULL, " ");
         arg2 = strtok(NULL, " ");

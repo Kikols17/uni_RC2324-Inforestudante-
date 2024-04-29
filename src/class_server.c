@@ -238,7 +238,7 @@ void process_admin_udp() {
             printf("!!!ERROR!!!\n-> Error in recvfrom.\n");
             exit(1);
         }
-	    buf_in[recv_len-1] = ' ';
+        printf("%d\n", recv_len);
 	    buf_in[recv_len-1] = '\0';
         printf("[UDP]>>>>> FROM client port->%d: \"%s\".\n", si_outra.sin_port, buf_in);
 
@@ -417,8 +417,13 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
     response[0] = '\0';     // clear response buffer
 
 
+    if ( command==NULL ) {
+        /* If command is empty */
+        sprintf(response, "-> INVALID COMMAND!\n\n");
+        return 1;
+    
 
-    if ( strcmp(command, "LOGIN")==0 ) {
+    } else if ( strcmp(command, "LOGIN")==0 ) {
         /* Log in user(administrador) (LOGIN <username> <password>) */
         arg1 = strtok(NULL, " ");
         arg2 = strtok(NULL, " ");

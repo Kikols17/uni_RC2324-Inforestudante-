@@ -71,9 +71,10 @@ int login(struct User *user, char *user_name, char *password) {
 
 
 // Commands for TCP client
-int list_cmds_tcp(struct User *user, char *response) {
+int list_cmds_tcp(char *response) {
     sprintf(response+strlen(response), "List of TCP commands:\n"
                                        "  - LOGIN <user_name> <password>\n"
+                                       "  - HELP\n"
                                        "  -> After login:\n"
                                        "      - LIST_CLASSES\n"
                                        "      - LIST_SUBSCRIBED\n"
@@ -118,9 +119,10 @@ int send_message(struct User *user, char *class_name, char *message) {
 
 
 // Commands for UDP client
-int list_cmds_tcp(struct User *user, char *response) {
-    sprintf(response+strlen(response), "List of TCP commands:\n"
+int list_cmds_udp(char *response) {
+    sprintf(response+strlen(response), "List of UDP commands:\n"
                                        "  - LOGIN <user_name> <password>\n"
+                                       "  - HELP\n"
                                        "  -> After login:\n"
                                        "      - ADD_USER <username> <password> <type>\n"
                                        "      - DEL <username>\n"

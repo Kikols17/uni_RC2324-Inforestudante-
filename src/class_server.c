@@ -273,11 +273,23 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             sprintf(response+strlen(response), "-> INVALID COMMAND! Login with:\nLOGIN <user_name> <password>");
         } else {
             // if logged in, display only error message
-            sprintf(response+strlen(response), "-> INVALID COMMAND!");
+            sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
         }
         return -1;
 
         
+    } else if ( strcmp(command, "HELP")==0 ) {
+        /* List all commands (HELP) */
+        end = strtok(NULL, " ");
+        if (end!=NULL) {
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nHELP");
+            return 1;
+        } else {
+            list_cmds_tcp(response);
+            return 0;
+        }
+    
+
     } else if ( strcmp(command, "LOGIN")==0 ) {
         /* Log in user (LOGIN <username> <password>) */
         arg1 = strtok(NULL, " ");
@@ -403,7 +415,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
 
     } else {
         /* Command not found */
-        sprintf(response+strlen(response), "-> INVALID COMMAND!");
+        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
         return -1;
     }
     
@@ -419,9 +431,21 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
 
     if ( command==NULL ) {
         /* If command is empty */
-        sprintf(response+strlen(response), "-> INVALID COMMAND!");
+        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
         return 1;
     
+    
+    } else if ( strcmp(command, "HELP")==0 ) {
+        /* List all commands (HELP) */
+        end = strtok(NULL, " ");
+        if (end!=NULL) {
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nHELP");
+            return 1;
+        } else {
+            list_cmds_udp(response);
+            return 0;
+        }
+
 
     } else if ( strcmp(command, "LOGIN")==0 ) {
         /* Log in user(administrador) (LOGIN <username> <password>) */
@@ -507,7 +531,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
 
     } else {
         // Command not found
-        sprintf(response+strlen(response), "-> INVALID COMMAND!: \"%s\"", command);
+        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
         return 1;
     }
 

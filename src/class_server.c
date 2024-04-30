@@ -542,8 +542,16 @@ void handle_usecursor(struct User *user, char *response) {
     /* Appends to "response" the name of the user, if is logged in */
 
     if (user->user_id==-1) {
-        sprintf(response+strlen(response), "\n\n> ");
+        sprintf(response+strlen(response), "\n\n\033[1m> ");
     } else {
+        if (user->type==ALUNO) {
+            sprintf(response+strlen(response), "\033[1;34m");
+        } else if (user->type==PROFESSOR) {
+            sprintf(response+strlen(response), "\033[1;32m");
+        } else {
+            sprintf(response+strlen(response), "\033[1;31m");
+        }
         sprintf(response+strlen(response), "\n\n%s> ", user->name);
     }
+    sprintf(response+strlen(response), "\033[0m");
 }

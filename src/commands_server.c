@@ -71,6 +71,19 @@ int login(struct User *user, char *user_name, char *password) {
 
 
 // Commands for TCP client
+int list_cmds_tcp(struct User *user, char *response) {
+    sprintf(response+strlen(response), "List of TCP commands:\n"
+                                       "  - LOGIN <user_name> <password>\n"
+                                       "  -> After login:\n"
+                                       "      - LIST_CLASSES\n"
+                                       "      - LIST_SUBSCRIBED\n"
+                                       "      - SUBSCRIBE_CLASS <class_name>\n"
+                                       "  -> Professor permissions:\n"
+                                       "      - CREATE_CLASS <class_name> <size>\n"
+                                       "      - SEND <class_name> <text that server will send to subscribers>\n");
+    return 0;
+}
+
 int list_classes(struct User *user, char *response) {
     // TODO
     printf("[TODO]: list classes for user \"%s\", and write to pointer %p.\n", user->name, response);
@@ -103,6 +116,18 @@ int send_message(struct User *user, char *class_name, char *message) {
 
 
 
+
+// Commands for UDP client
+int list_cmds_tcp(struct User *user, char *response) {
+    sprintf(response+strlen(response), "List of TCP commands:\n"
+                                       "  - LOGIN <user_name> <password>\n"
+                                       "  -> After login:\n"
+                                       "      - ADD_USER <username> <password> <type>\n"
+                                       "      - DEL <username>\n"
+                                       "      - LIST\n"
+                                       "      - QUIT_SERVER\n");
+    return 0;
+}
 
 int add_user(struct User *user, char *user_name, char *password, char* type) {
     // TODO

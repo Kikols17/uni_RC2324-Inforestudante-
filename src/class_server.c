@@ -467,7 +467,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         arg3 = strtok(NULL, " ");
         end = strtok(NULL, " ");
         if (arg1==NULL || arg2==NULL || arg3==NULL || end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGIN <username> <password> <type>");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nADD_USER <username> <password> <type>");
             return 1;
         } else {
             // TODO[META1] create user

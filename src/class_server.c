@@ -146,6 +146,7 @@ void *handle_tcp(void *PORTO_TURMAS_ptr) {
             if (pid == 0) {
                 // if not parent process
                 close(server_fd_tcp);
+                fprintf (stdout,"[TCP]+++++NEW CONNECTION FROM %s:%d.\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 process_client_tcp(client_fd_tcp);
                 exit(0);
             }

@@ -18,6 +18,14 @@
 #ifndef BUF_SIZE
 #define BUF_SIZE 1024
 #endif
+#define N_CLASSES 16
+
+typedef struct Class {
+    char name[BUF_SIZE];
+    int size;
+    int subscribed;
+    int subscribed_ids[N_CLASSES];
+} Class;
 
 
 void handle_sigint();

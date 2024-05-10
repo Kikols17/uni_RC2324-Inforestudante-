@@ -2,8 +2,8 @@ all: class_server class_client
 
 
 
-class_server: class_server.o commands_server.o
-	gcc -Wall -Wextra class_server.o commands_server.o -pthread -o class_server
+class_server: class_server.o commands_server.o class_struct.o
+	gcc -Wall -Wextra class_server.o commands_server.o class_struct.o -pthread -o class_server
 
 class_client: class_client.o
 	gcc -Wall -Wextra class_client.o -o class_client
@@ -18,6 +18,9 @@ class_client.o: class_client.c
 
 commands_server.o: commands_server.c commands_server.h
 	gcc -Wall -Wextra -c commands_server.c
+
+class_struct.o: class_struct.c class_struct.h
+	gcc -Wall -Wextra -c class_struct.c
 
 
 

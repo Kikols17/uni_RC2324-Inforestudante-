@@ -1,0 +1,25 @@
+#ifndef CLASS_STRUCT_H
+#define CLASS_STRUCT_H
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+
+#ifndef BUF_SIZE
+#define BUF_SIZE 1024
+#endif
+
+typedef struct Class {
+    char name[BUF_SIZE];
+    int size;
+    int subscribed;
+    int *subscribed_ids;
+} Class;
+
+
+Class *create_classstruct(char *name, int size);
+int destroy_classstruct(Class *c);
+int addsub_classstruct(Class *c, int id);
+
+#endif

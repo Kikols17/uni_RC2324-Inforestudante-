@@ -12,6 +12,13 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <signal.h>
+#include <semaphore.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 
 #include "commands_server.h"
 #include "class_struct.h"
@@ -23,6 +30,7 @@
 
 
 void handle_sigint();
+int create_shared_memory();
 void *handle_tcp(void *PORTO_TURMAS);
 void *handle_udp(void *PORTO_CONFIG);
 
@@ -38,6 +46,11 @@ FILE *config_file;
 pid_t pid;
 int server_fd_tcp = -1, server_fd_udp = -1;
 int client_fd_tcp = -1;
+
+// create shared memory
+int shmid;
+Class **classes;
+sem_t class_sem;
 
 
 int main(int argc, char *argv[]) {
@@ -76,6 +89,18 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    if (create_shared_memory()==-1) {
+        // could not create shared memory
+        printf("!!!ERROR!!!\n-> Could not create shared memory.\n");
+        return 1;
+    }
+
+    if (sem_init(&class_sem, 0, 1)==-1) {
+        // could not create semaphore
+        printf("!!!ERROR!!!\n-> Could not create semaphore.\n");
+        return 1;
+    }
+
 
     pthread_create(&tcp_thread, NULL, handle_tcp, &PORTO_TURMAS);        // handle tcp connections
     pthread_create(&udp_thread, NULL, handle_udp, &PORTO_CONFIG);        // handle udp connections
@@ -107,7 +132,31 @@ void handle_sigint() {
         close(client_fd_tcp);
     }
     fclose(config_file);
+
+    sem_destroy(&class_sem);    // close semaphore
+    shmdt(classes);                 // }
+    shmctl(shmid, IPC_RMID, NULL);  // } close shared memory
+
     exit(1);
+}
+
+int create_shared_memory() {
+    shmid = shmget(IPC_PRIVATE, sizeof(Class*)*N_CLASSES, IPC_CREAT | 0666);
+    if (shmid < 0) {
+        printf("!!!ERROR!!!\n-> Could not create shared memory.\n");
+        return -1;
+    }
+    classes = (Class **)shmat(shmid, NULL, 0);
+    if (classes == (Class **)-1) {
+        printf("!!!ERROR!!!\n-> Could not assign shared memory.\n");
+        return -1;
+    }
+
+    // set all classes to empty
+    for (int i=0; i<N_CLASSES; i++) {
+        classes[i] = NULL;
+    }
+    return 0;
 }
 
 

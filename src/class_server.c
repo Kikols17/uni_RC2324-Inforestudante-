@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <semaphore.h>
+#include <fcntl.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -50,7 +51,7 @@ int client_fd_tcp = -1;
 // create shared memory
 int shmid;
 Class **classes;
-sem_t class_sem;
+sem_t *class_sem;
 
 
 int main(int argc, char *argv[]) {
@@ -95,7 +96,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (sem_init(&class_sem, 0, 1)==-1) {
+    // create semaphore
+    class_sem = sem_open("class_sem", O_CREAT, 0666, 1);
+    if (class_sem == SEM_FAILED) {
         // could not create semaphore
         printf("!!!ERROR!!!\n-> Could not create semaphore.\n");
         return 1;
@@ -133,7 +136,8 @@ void handle_sigint() {
     }
     fclose(config_file);
 
-    sem_destroy(&class_sem);    // close semaphore
+    sem_close(class_sem);       // }
+    sem_unlink("class_sem");    // } close semaphore
     shmdt(classes);                 // }
     shmctl(shmid, IPC_RMID, NULL);  // } close shared memory
 

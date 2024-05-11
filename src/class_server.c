@@ -43,15 +43,19 @@ void handle_usecursor(struct User *user, char *response);
 
 
 
-FILE *config_file;
 pid_t pid;
 int server_fd_tcp = -1, server_fd_udp = -1;
 int client_fd_tcp = -1;
+int n_classes = N_CLASSES;
 
 // create shared memory
 int shmid;
 Class **classes;
 sem_t *class_sem;
+
+// file stuff
+FILE *config_file;
+sem_t *config_sem;
 
 
 int main(int argc, char *argv[]) {
@@ -83,7 +87,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    config_file = fopen(argv[3], "r");
+    config_file = fopen(argv[3], "r+");
     if (config_file==NULL) {
         // make sure the config file exists
         printf("!!!INVALID ARGUMENTS!!!\n-> <CONFIG_FILEPATH> not found\n");
@@ -276,6 +280,7 @@ void process_client_tcp(int client_fd_tcp) {
         fflush(stdout);
     }
     close(client_fd_tcp);
+    return;
 }
 
 void process_admin_udp() {
@@ -393,7 +398,8 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             return 1;
         } else {
             // TODO[META1]  list all classes
-            sprintf(response+strlen(response), "Now listing classes for user ID:%d, name:\"%s\".", user->user_id, user->name);
+            //sprintf(response+strlen(response), "Now listing classes for user ID:%d, name:\"%s\".", user->user_id, user->name);
+            list_classes(user, response);
             return 0;
         }
 
@@ -437,7 +443,9 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
                 return 1;
             } else {
                 // TODO[META1] create class with name and size
-                sprintf(response+strlen(response), "Now creating class \"%s\" with size \"%s\".", arg1, arg2);
+                //sprintf(response+strlen(response), "Now creating class \"%s\" with size \"%s\".", arg1, arg2);
+                create_class(user, arg1, atoi(arg2), response);
+
                 return 0;
             }
         } else {

@@ -54,6 +54,12 @@ int addsub_classstruct(Class *c, int id) {
         printf("!!!ERROR!!!\n-> Cannot add more subscribers to class %s.\n", c->name);
         return -1;
     }
+    for (int i=0; i<c->subscribed; i++) {
+        if (c->subscribed_ids[i] == id) {
+            printf("!!!ERROR!!!\n-> User %d is already subscribed to class %s.\n", id, c->name);
+            return 1;
+        }
+    }
     c->subscribed_ids[c->subscribed] = id;
     c->subscribed++;
     return 0;

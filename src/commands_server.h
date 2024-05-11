@@ -25,7 +25,7 @@ int list_cmds_tcp(char *response);
 int list_classes(struct User *user, char *response);
 int list_subscribe(struct User *user, char *response);
 int subscribe_class(struct User *user, char *class_name);
-int create_class(struct User *user, char *class_name, int size);
+int create_class(struct User *user, char *class_name, int size, char *response);
 int send_message(struct User *user, char *class_name, char *message);
 
 

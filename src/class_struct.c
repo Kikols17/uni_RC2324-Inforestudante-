@@ -13,34 +13,38 @@
 #endif
 
 
-Class *create_classstruct(char *name, int size) {
+int create_classstruct(Class *c, char *name, int size) {
     /* Allocate memory for a new class */
-    Class *new_c = (Class *)malloc(sizeof(Class));
-    if (new_c == NULL) {
-        printf("!!!ERROR!!!\n-> Could not allocate memory for new_c.\n");
-        return NULL;
+    if (c->name[0] != '\0') {
+        printf("!!!ERROR!!!\n-> Cannot create a class in a non-empty struct.\n");
+        return -1;
     }
-
-    strcpy(new_c->name, name);
-    new_c->size = size;
-    new_c->subscribed = 0;
-    new_c->subscribed_ids = (int *)malloc(size * sizeof(int));
-    if (new_c->subscribed_ids == NULL) {
-        printf("!!!ERROR!!!\n-> Could not allocate memory for new_c->subscribed");
-        free(new_c);
-        return NULL;
+    if (size <= 0) {
+        printf("!!!ERROR!!!\n-> Cannot create a class with size <= 0.\n");
+        return -2;
     }
-    return new_c;
+    strcpy(c->name, name);
+    c->size = size;
+    c->subscribed = 0;
+    c->subscribed_ids = (int *)malloc(size * sizeof(int));
+    if (c->subscribed_ids == NULL) {
+        printf("!!!ERROR!!!\n-> Could not allocate memory for class %s.\n", name);
+        return -3;
+    }
+    return 0;
 }
 
 int destroy_classstruct(Class *c) {
     /* Free memory allocated for a class */
-    if (c == NULL) {
-        printf("!!!ERROR!!!\n-> Cannot destroy a NULL class.\n");
+    if (c->name[0] == '\0') {
+        printf("!!!ERROR!!!\n-> Cannot free memory for an empty class.\n");
         return -1;
     }
+    c->name[0] = '\0';
+    c->size = -1;
+    c->subscribed = 0;
     free(c->subscribed_ids);
-    free(c);
+    c->subscribed_ids = NULL;
     return 0;
 }
 
@@ -48,7 +52,7 @@ int addsub_classstruct(Class *c, int id) {
     /* Add a subscriber to a class */
     if (c == NULL) {
         printf("!!!ERROR!!!\n-> Cannot add a subscriber to a NULL class.\n");
-        return -1;
+        return -2;
     }
     if (c->subscribed == c->size) {
         printf("!!!ERROR!!!\n-> Cannot add more subscribers to class %s.\n", c->name);

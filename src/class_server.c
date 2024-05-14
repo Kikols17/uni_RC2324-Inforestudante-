@@ -50,7 +50,7 @@ int n_classes = N_CLASSES;
 
 // create shared memory
 int shmid;
-Class **classes;
+Class *classes;
 sem_t *class_sem;
 
 // file stuff
@@ -108,6 +108,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    config_sem = sem_open("config_sem", O_CREAT, 0666, 1);
+    if (config_sem == SEM_FAILED) {
+        // could not create semaphore
+        printf("!!!ERROR!!!\n-> Could not create semaphore.\n");
+        return 1;
+    }
+
 
     pthread_create(&tcp_thread, NULL, handle_tcp, &PORTO_TURMAS);        // handle tcp connections
     pthread_create(&udp_thread, NULL, handle_udp, &PORTO_CONFIG);        // handle udp connections
@@ -132,37 +139,44 @@ void handle_sigint() {
         close(server_fd_udp);
 
         printf("-> Closing Server\n");
+
+        fclose(config_file);    // close config file
     }
     if (pid==0) {
         write(client_fd_tcp, "-+!SERVER-CL0SING!+-", 1 + strlen("-+!SERVER-CL0SING!+-"));
         printf("-> Closing client_fd_tcp: %d\n", client_fd_tcp);
         close(client_fd_tcp);
     }
-    fclose(config_file);
 
     sem_close(class_sem);       // }
     sem_unlink("class_sem");    // } close semaphore
-    shmdt(classes);                 // }
-    shmctl(shmid, IPC_RMID, NULL);  // } close shared memory
+    sem_close(config_sem);          // }
+    sem_unlink("config_sem");       // } close semaphore
+    shmdt(classes);                     // }
+    shmctl(shmid, IPC_RMID, NULL);      // } close shared memory
 
     exit(1);
 }
 
 int create_shared_memory() {
-    shmid = shmget(IPC_PRIVATE, sizeof(Class*)*N_CLASSES, IPC_CREAT | 0666);
+    shmid = shmget(IPC_PRIVATE, sizeof(Class)*N_CLASSES, IPC_CREAT | 0666);
     if (shmid < 0) {
         printf("!!!ERROR!!!\n-> Could not create shared memory.\n");
         return -1;
     }
-    classes = (Class **)shmat(shmid, NULL, 0);
-    if (classes == (Class **)-1) {
+    classes = (Class *)shmat(shmid, NULL, 0);
+    if (classes == (Class *)-1) {
         printf("!!!ERROR!!!\n-> Could not assign shared memory.\n");
         return -1;
     }
 
     // set all classes to empty
     for (int i=0; i<N_CLASSES; i++) {
-        classes[i] = NULL;
+        classes[i].name[0] = '\0';
+        classes[i].size = -1;
+        classes[i].subscribed = 0;
+        classes[i].subscribed_ids = NULL;
+        //printf("Class %d: \"%s\", size:%d, subscribed:%d\n", i, classes[i].name, classes[i].size, classes[i].subscribed);
     }
     return 0;
 }
@@ -412,7 +426,8 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             return 1;
         } else {
             // TODO[META1]  list class subscriptions for user
-            sprintf(response+strlen(response), "Now listing subscriptions for user ID:\"%d\", name:\"%s\".", user->user_id, user->name);
+            //sprintf(response+strlen(response), "Now listing subscriptions for user ID:\"%d\", name:\"%s\".", user->user_id, user->name);
+            list_subscribe(user, response);
             return 0;
         }
 
@@ -426,7 +441,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             return 1;
         } else {
             // TODO[META1] subscribe user to class
-            sprintf(response+strlen(response), "Now subscribing user ID:\"%d\", name:\"%s\" to class named \"%s\".", user->user_id, user->name, arg1);
+            subscribe_class(user, arg1, response);
             return 0;
         }
         
@@ -460,7 +475,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         if (user->type==PROFESSOR) {
             // If user is a "professor"
             arg1 = strtok(NULL, " ");
-            arg2 = strtok(NULL, " ");
+            arg2 = strtok(NULL, "\0");
             // no size limit, no *end pointer
             if (arg1==NULL || arg2==NULL) {
                 sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nSEND <class_name> <text that server will send to subscribers>");
@@ -559,8 +574,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
             return 1;
         } else {
             // TODO[META1] create user
-            sprintf(response+strlen(response), "Creating new user \"%s\" with password \"%s\" and type \"%s\".", arg1, arg2, arg3);
-            add_user(user, arg1, arg2, arg3);
+            add_user(user, arg1, arg2, arg3, response);
             return 0;
         }
     
@@ -574,7 +588,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         } else {
             // TODO[META1] delete user
             sprintf(response+strlen(response), "Deleting user \"%s\".", arg1);
-            del_user(user, arg1);
+            del_user(user, arg1, response);
             return 0;
         }
     
@@ -583,7 +597,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         /* List all users (LIST) */
         // TODO[META1] list users
         sprintf(response+strlen(response), "Listing users.");
-        list_users(user);
+        list_users(user, response);
         return 0;
     
 

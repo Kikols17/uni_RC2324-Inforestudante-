@@ -10,7 +10,6 @@
 #define BUF_SIZE 1024
 #endif
 
-
 extern int n_classes;
 
 // file stuff
@@ -18,14 +17,13 @@ extern FILE *config_file;
 extern sem_t *config_sem;
 
 // class stuff
-extern struct Class **classes;
+extern struct Class *classes;
 extern sem_t *class_sem;
-
 
 // Commands for both TCP client and UDP client
 int login(struct User *user, char *user_name, char *password) {
     /* Logs in user based on user_name and password from "config_file"
-     * 
+     *
      * return:
      *      -1-> format error
      *      0-> user found
@@ -40,30 +38,30 @@ int login(struct User *user, char *user_name, char *password) {
     char *possible_username, *possible_password, *possible_type;
 
     sem_wait(config_sem);
-    rewind(config_file);    // from beginning of file;
-    while ( (size = getline(&line, &len, config_file))!=0 ) {
-        line[size-1] = '\0';
+    rewind(config_file); // from beginning of file;
+    while ((size = getline(&line, &len, config_file)) != 0) {
+        line[size - 1] = '\0';
         possible_username = strtok(line, ";");
         possible_password = strtok(NULL, ";");
         possible_type = strtok(NULL, ";");
 
-        if ( possible_username==NULL  ||  possible_password==NULL  ||  possible_type==NULL ) {
+        if (possible_username == NULL || possible_password == NULL || possible_type == NULL) {
             // incorrect format
             sem_post(config_sem);
             return -1;
         }
 
-        if ( strcmp(user_name, possible_username)==0 ) {
+        if (strcmp(user_name, possible_username) == 0) {
             /* user name match */
-            if ( strcmp(password, possible_password)==0 ) {
+            if (strcmp(password, possible_password) == 0) {
                 /* password match */
                 user->user_id = id;
-                strcpy( user->name, possible_username);
-                if ( strcmp(possible_type, "aluno")==0 ) {
+                strcpy(user->name, possible_username);
+                if (strcmp(possible_type, "aluno") == 0) {
                     user->type = ALUNO;
-                } else if ( strcmp(possible_type, "professor")==0 ) {
+                } else if (strcmp(possible_type, "professor") == 0) {
                     user->type = PROFESSOR;
-                } else if ( strcmp(possible_type, "administrator")==0 ) {
+                } else if (strcmp(possible_type, "administrator") == 0) {
                     user->type = ADMINISTRADOR;
                 } else {
                     // incorrect format
@@ -84,70 +82,102 @@ int login(struct User *user, char *user_name, char *password) {
     return 1;
 }
 
-
-
-
 // Commands for TCP client
 int list_cmds_tcp(char *response) {
     /* Lists all commands for TCP client */
-    sprintf(response+strlen(response), "List of TCP commands:\n"
-                                       "  - LOGIN <user_name> <password>\n"
-                                       "  - HELP\n"
-                                       "  -> After login:\n"
-                                       "      - LIST_CLASSES\n"
-                                       "      - LIST_SUBSCRIBED\n"
-                                       "      - SUBSCRIBE_CLASS <class_name>\n"
-                                       "  -> Professor permissions:\n"
-                                       "      - CREATE_CLASS <class_name> <size>\n"
-                                       "      - SEND <class_name> <text that server will send to subscribers>\n");
+    sprintf(response + strlen(response), "List of TCP commands:\n"
+                                         "  - LOGIN <user_name> <password>\n"
+                                         "  - HELP\n"
+                                         "  -> After login:\n"
+                                         "      - LIST_CLASSES\n"
+                                         "      - LIST_SUBSCRIBED\n"
+                                         "      - SUBSCRIBE_CLASS <class_name>\n"
+                                         "  -> Professor permissions:\n"
+                                         "      - CREATE_CLASS <class_name> <size>\n"
+                                         "      - SEND <class_name> <text that server will send to subscribers>\n");
     return 0;
 }
 
 int list_classes(struct User *user, char *response) {
     /* Lists all classes */
-    response[0] = '\0';     // clear response buffer
+    response[0] = '\0'; // clear response buffer
     sem_wait(class_sem);
-    sprintf(response+strlen(response), "List of classes:\n");
-    for (int i=0; i<n_classes; i++) {
-        if (classes[i]==NULL) {
+    sprintf(response + strlen(response), "List of classes:\n");
+    for (int i = 0; i < n_classes; i++) {
+        if (classes[i].name[0] == '\0') {
             // no class on this slot
             continue;
         }
-        sprintf(response+strlen(response), "\t- \"%s\": vacant-%d\n", classes[i]->name, classes[i]->size-classes[i]->subscribed);
+        sprintf(response + strlen(response), "\t- \"%s\": vacant-%d\n", classes[i].name, classes[i].size-classes[i].subscribed);
     }
     sem_post(class_sem);
     return 0;
 }
 
 int list_subscribe(struct User *user, char *response) {
-    // TODO
-    printf("[TODO]: list subscribed for user \"%s\", and write to pointer %p.\n", user->name, response);
-    return -1;
+    /* Lists all subscribers of "user" */
+    response[0] = '\0'; // clear response buffer
+    sprintf(response+strlen(response), "List of classes subscribed by user \"%s\":\n", user->name);
+    for (int i=0; i<n_classes; i++) {
+        if (classes[i].name[0] == '\0') {
+            continue;
+        }
+        for (int j=0; j<classes[i].subscribed; j++) {
+            if (classes[i].subscribed_ids[j] == user->user_id) {
+                sprintf(response+strlen(response), "\t-> %s\n", classes[i].name);
+                break;
+            }
+        }
+    }
+    return 0;
 }
 
-int subscribe_class(struct User *user, char *class_name) {
+int subscribe_class(struct User *user, char *class_name, char *response) {
     /* Subscribe user to class
      *  return:
-     *      -1-> class not found 
+     *      -1-> class not found / unknown error
      *       0-> subscription successful
-     *       1-> already subscribed
+     *       1-> subscription failed (class full / already subscribed)
      */
+    int result;
     sem_wait(class_sem);
     for (int i=0; i<n_classes; i++) {
-        if ( strcmp(classes[i]->name, class_name)==0 ) {
-            if ( addsub_classstruct(classes[i], user->user_id)==0 ) {
+        if ( classes[i].name[0] == '\0') {
+            // no class on this slot
+            continue;
+        } else if (strcmp(classes[i].name, class_name)==0) {
+            // class found
+            result = addsub_classstruct(&classes[i], user->user_id);
+            if ( result==0) {
                 // subscription successful
                 sem_post(class_sem);
+                sprintf(response+strlen(response), "User \"%s\" subscribed to class \"%s\".\n", user->name, class_name);
                 return 0;
-            } else {
+            } else if ( result==-1 ) {
+                // class full
+                sem_post(class_sem);
+                sprintf(response+strlen(response), "!!!ERROR!!!\n-> Class \"%s\" is full.\n", class_name);
+                return 1;
+            } else if ( result==1 ) {
                 // already subscribed
                 sem_post(class_sem);
+                sprintf(response+strlen(response), "!!!ERROR!!!\n-> User \"%s\" is already subscribed to class \"%s\".\n", user->name, class_name);
                 return 1;
+            } else {
+                // unknown error
+                sem_post(class_sem);
+                sprintf(response+strlen(response), "!!!ERROR!!!\n-> Unknown error while subscribing user \"%s\" to class \"%s\".\n", user->name, class_name);
+                return -1;
+            
             }
+        } else {
+            // class not found
+            printf("\"%s\" not \"%s\".\n", classes[i].name, class_name);
         }
     }
     // class not found
     sem_post(class_sem);
+    sprintf(response+strlen(response), "!!!ERROR!!!\n-> Class \"%s\" not found.\n", class_name);
     return -1;
 }
 
@@ -163,40 +193,40 @@ int create_class(struct User *user, char *class_name, int size, char *response) 
      *          (any positive int)-> index of new class
      */
     int new_index = -1;
-    response[0] = '\0';     // clear response buffer
+    response[0] = '\0'; // clear response buffer
     sem_wait(class_sem);
-    for (int i=0; i<n_classes; i++) {
-        if ( classes[i]==NULL ) {
+    for (int i = 0; i < n_classes; i++) {
+        if (classes[i].name[0] == '\0') {
             // empty spot found
-            if ( new_index==-1 ) {
+            if (new_index == -1) {
                 // first empty spot found
                 new_index = i;
             }
             continue;
         }
-        if ( strcmp(classes[i]->name, class_name)==0 ) {
+        if (strcmp(classes[i].name, class_name) == 0) {
             // class already exists
             sem_post(class_sem);
-            sprintf(response+strlen(response), "!!!ERROR!!!\n-> Class \"%s\" already exists!\n", class_name);
+            sprintf(response + strlen(response), "!!!ERROR!!!\n-> Class \"%s\" already exists!\n", class_name);
             return -2;
         }
     }
-    if (new_index==-1) {
+    if (new_index == -1) {
         // no more space for classes
         sem_post(class_sem);
-        sprintf(response+strlen(response), "!!!ERROR!!!\n-> No more space for classes!\n");
+        sprintf(response + strlen(response), "!!!ERROR!!!\n-> No more space for classes!\n");
         return -3;
     } else {
-        classes[new_index] = create_classstruct(class_name, size);
-        if (classes[new_index] == NULL) {
-            // malloc failed
+        create_classstruct(&classes[new_index], class_name, size);
+        if (classes[new_index].name[0] == '\0') {
+            // creation failed
             sem_post(class_sem);
-            sprintf(response+strlen(response), "!!!ERROR!!!\n-> Could not allocate memory for class \"%s\".\n", class_name);
+            sprintf(response + strlen(response), "!!!ERROR!!!\n-> Could not create class \"%s\".\n", class_name);
             return -1;
         }
-        // malloc successful, class created
+        // creation successful, class created
         sem_post(class_sem);
-        sprintf(response+strlen(response), "Class \"%s\" created with size %d on slot %d.\n", class_name, size, new_index);
+        sprintf(response + strlen(response), "Class \"%s\" created with size %d on slot %d.\n", classes[new_index].name, classes[new_index].size, new_index);
         return new_index;
     }
 }
@@ -208,26 +238,55 @@ int send_message(struct User *user, char *class_name, char *message) {
 }
 
 
-
-
 // Commands for UDP client
 int list_cmds_udp(char *response) {
     /* Lists all commands for UDP client */
-    sprintf(response+strlen(response), "List of UDP commands:\n"
-                                       "  - LOGIN <user_name> <password>\n"
-                                       "  - HELP\n"
-                                       "  -> After login:\n"
-                                       "      - ADD_USER <username> <password> <type>\n"
-                                       "      - DEL <username>\n"
-                                       "      - LIST\n"
-                                       "      - QUIT_SERVER\n");
+    sprintf(response + strlen(response), "List of UDP commands:\n"
+                                         "  - LOGIN <user_name> <password>\n"
+                                         "  - HELP\n"
+                                         "  -> After login:\n"
+                                         "      - ADD_USER <username> <password> <type>\n"
+                                         "      - DEL <username>\n"
+                                         "      - LIST\n"
+                                         "      - QUIT_SERVER\n");
     return 0;
 }
 
-int add_user(struct User *user, char *user_name, char *password, char* type) {
-    // TODO
-    printf("[TODO]: User \"%s\" created user with username \"%s\", password \"%s\" and type \"%s\".\n", user->name, user_name, password, type);
+int add_user(struct User *user, char *user_name, char *password, char *type, char *response) {
+    /* Adds user to config file with "user_name" "password" and "type", if type is valid
+     *      return:
+     *         -1-> invalid type
+     *         (positive integer)-> user added
+     */
 
+    char *line = NULL;
+    size_t len = BUF_SIZE;
+    size_t size;
+
+    if ( strcmp(type, "aluno")!=0 && strcmp(type, "professor")!=0 && strcmp(type, "administrator")!=0) {
+        sprintf(response + strlen(response), "!!!ERROR!!!\n-> Invalid type \"%s\" (aluno/professor/administrator).\n", type);
+        return -1;
+    }
+
+    sem_wait(config_sem);
+    rewind(config_file);    // from beginning of file;
+    int pos = 0;
+    while ((size = getline(&line, &len, config_file))!=-1) {
+        // get to the end of file, and count lines (users)
+        pos++;
+    }
+    fprintf(config_file, "%s;%s;%s\n", user_name, password, type);
+    sem_post(config_sem);
+    sprintf(response + strlen(response), "User \"%s\" with password \"%s\" and type <%s> added to config file on line %d.\n", user_name, password, type, pos);
+    return 0;
+}
+
+int del_user(struct User *user, char *user_name, char* response) {
+    // TODO
+    printf("[TODO]: User \"%s\" deleted user with username \"%s\".\n", user->name, user_name);
+    return -1;
+    /* Deletes entry on config file based on "user_name" */
+    
     char *line = NULL;
     size_t len = BUF_SIZE;
     size_t size;
@@ -235,20 +294,41 @@ int add_user(struct User *user, char *user_name, char *password, char* type) {
     sem_wait(config_sem);
     rewind(config_file);    // from beginning of file;
     while ( (size = getline(&line, &len, config_file))!=0 ) {
+        if (strcmp(strtok(line, ";"), user_name) == 0) {
+            // user found
+            sem_post(config_sem);
+            sprintf(response + strlen(response), "User \"%s\" deleted from config file.\n", user_name);
+            return 0;
+        }
     }
-    fprintf(config_file, "%s;%s;%s\n", user_name, password, type);
+    // user not found
+    sem_post(config_sem);
+    sprintf(response + strlen(response), "!!!ERROR!!!\n-> User \"%s\" not found.\n", user_name);
+    return -1;
+}
+
+int list_users(struct User *user, char *response) {
+    // TODO
+    printf("[TODO]: User \"%s\" listing all users.\n", user->name);
+
+    /* Lists all users */
+    
+    char *line = NULL;
+    size_t len = BUF_SIZE;
+    size_t size;
+
+    char *username, *type;
+
+    sem_wait(config_sem);
+    rewind(config_file);    // from beginning of file;
+    sprintf(response, "Users:\n");
+    while ( (size = getline(&line, &len, config_file))!=-1 ) {
+        line[size - 1] = '\0';
+        username = strtok(line, ";");
+        type = strtok(NULL, ";");       // discard this
+        type = strtok(NULL, ";");
+        sprintf(response+strlen(response), "%s - %s\n", username, type);
+    }
     sem_post(config_sem);
     return 0;
-}
-
-int del_user(struct User *user, char *user_name) {
-    // TODO
-    printf("[TODO]: User \"%s\" deleted user with username \"%s\".\n", user->name, user_name);
-    return -1;
-}
-
-int list_users(struct User *user) {
-    // TODO
-    printf("[TODO]: User \"%s\" wants to list all users.\n", user->name);
-    return -1;
 }

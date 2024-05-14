@@ -18,7 +18,7 @@ typedef struct Class {
 } Class;
 
 
-Class *create_classstruct(char *name, int size);
+int create_classstruct(Class *c, char *name, int size);
 int destroy_classstruct(Class *c);
 int addsub_classstruct(Class *c, int id);
 

@@ -24,15 +24,15 @@ int login(struct User *user, char *user_name, char *password);
 int list_cmds_tcp(char *response);
 int list_classes(struct User *user, char *response);
 int list_subscribe(struct User *user, char *response);
-int subscribe_class(struct User *user, char *class_name);
+int subscribe_class(struct User *user, char *class_name, char *response);
 int create_class(struct User *user, char *class_name, int size, char *response);
 int send_message(struct User *user, char *class_name, char *message);
 
 
 int list_cmds_udp(char *response);
-int add_user(struct User *user, char *user_name, char *password, char* type);
-int del_user(struct User *user, char *user_name);
-int list_users(struct User *user);
+int add_user(struct User *user, char *user_name, char *password, char* type, char *response);
+int del_user(struct User *user, char *user_name, char *response);
+int list_users(struct User *user, char *response);
 
 
 #endif

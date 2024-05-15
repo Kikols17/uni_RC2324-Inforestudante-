@@ -290,7 +290,16 @@ int file_listusers(char *filename, char *response) {
             sem_post(config_sem);
             return -1;
         }
-        sprintf(response+strlen(response), "\t%s -> %s\n", possible_username, possible_type);
+        sprintf(response+strlen(response), "\t%s -> ", possible_username);
+        if ( strcmp(possible_type, "aluno")==0 ) {
+            sprintf(response+strlen(response), "\033[1;34m");
+        } else if ( strcmp(possible_type, "professor")==0 ) {
+            sprintf(response+strlen(response), "\033[1;32m");
+        } else {
+            sprintf(response+strlen(response), "\033[1;31m");
+        }
+        sprintf(response+strlen(response), "%s", possible_type);
+        sprintf(response+strlen(response), "\033[0m\n");
     }
     fclose(file);
     sem_post(config_sem);

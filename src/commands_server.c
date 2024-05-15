@@ -109,6 +109,23 @@ int login(struct User *user, char *user_name, char *password) {
     return 1;
 }
 
+int logout(struct User *user, char *response) {
+    /* Exits admin session
+     * return:
+     *      0-> logout successful
+     *      1-> user not logged in
+     */
+    if (user->user_id == -1) {
+        sprintf(response, "User not logged in.\n");
+        return 1;
+    }
+    sprintf(response, "Logging out user \"%s\".\n", user->name);
+    user->user_id = -1;
+    user->name[0] = '\0';
+    return 0;
+}
+
+
 // Commands for TCP client
 int list_cmds_tcp(char *response) {
     /* Lists all commands for TCP client */
@@ -119,6 +136,7 @@ int list_cmds_tcp(char *response) {
                                          "      - LIST_CLASSES\n"
                                          "      - LIST_SUBSCRIBED\n"
                                          "      - SUBSCRIBE_CLASS <class_name>\n"
+                                         "      - LOGOUT\n"
                                          "  -> Professor permissions:\n"
                                          "      - CREATE_CLASS <class_name> <size>\n"
                                          "      - SEND <class_name> <text that server will send to subscribers>\n");
@@ -276,7 +294,7 @@ int list_cmds_udp(char *response) {
                                          "      - DEL <username>\n"
                                          "      - LIST\n"
                                          "      - QUIT_SERVER\n"
-                                         "      - EXIT\n");
+                                         "      - LOGOUT\n");
     return 0;
 }
 
@@ -331,13 +349,5 @@ int list_users(struct User *user, char *response) {
 
     file_listusers(config_file_path, response);
 
-    return 0;
-}
-
-int exit_admin(struct User *user, char *response) {
-    /* Exits admin session */
-    sprintf(response, "Logging out of admin.\n");
-    user->user_id = -1;
-    user->name[0] = '\0';
     return 0;
 }

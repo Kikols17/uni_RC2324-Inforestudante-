@@ -414,6 +414,14 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         return 2;
 
 
+    } else if ( strcmp(command, "LOGOUT")==0 ) {
+        /* Close user session */
+        if ( logout(user, response)==0 ) {
+            return 0;
+        } else {
+            return 2;
+        }
+
     } else if ( strcmp(command, "LIST_CLASSES")==0 ) {
         /* List classes for this user (LIST_CLASSES) */
         end = strtok(NULL, " ");
@@ -617,9 +625,9 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         return -1;
 
 
-    } else if ( strcmp(command, "EXIT")==0 ) {
+    } else if ( strcmp(command, "LOGOUT")==0 ) {
         /* Close admin session */
-        exit_admin(user, response);
+        logout(user, response);
         return 0;
     
     } else{

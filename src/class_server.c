@@ -314,6 +314,8 @@ void process_admin_udp() {
     int recv_len;		// tamanho da transmissão recebida
     char buf_in[BUF_SIZE];	    // transmissão recebida
     char buf_out[BUF_SIZE] = "";	// transmissão a ser enviada
+    char welcome_message[] = "Welcome to Server. Login with:\nLOGIN <user_name> <password>";  // message to be sent in the beggining
+
 
     struct User user;           // }
     user.user_id = -1;          // } used to autenticate user (admin)
@@ -330,14 +332,17 @@ void process_admin_udp() {
 	    buf_in[recv_len-1] = '\0';
         printf("[UDP]>>>>> FROM client port->%d: \"%s\".\n", si_outra.sin_port, buf_in);
 
+
         buf_out[0] = '\0';       // clear response buffer
-        if ( handle_requests_udp(&user, buf_in, buf_out)==-1 ) {
+        if ( strcmp(buf_in, "-+!HELLO!+-")==0 ) {
+            strcpy(buf_out, welcome_message);
+        } else if ( handle_requests_udp(&user, buf_in, buf_out)==-1 ) {
             running = 0;
         }
         handle_usecursor(&user, buf_out);
 
         printf("[UDP]<<<<< TO client port->%d: \"%s\".\n", si_outra.sin_port, buf_out);
-        sendto(server_fd_udp, (const char *)buf_out, strlen(buf_out), MSG_CONFIRM, (const struct sockaddr *) &si_outra, slen); 
+        sendto(server_fd_udp, (const char *)buf_out, BUF_SIZE-1, MSG_CONFIRM, (const struct sockaddr *) &si_outra, slen); 
     }
     handle_sigint();
 }

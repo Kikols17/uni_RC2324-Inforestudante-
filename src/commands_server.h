@@ -33,6 +33,7 @@ int list_cmds_udp(char *response);
 int add_user(struct User *user, char *user_name, char *password, char* type, char *response);
 int del_user(struct User *user, char *user_name, char *response);
 int list_users(struct User *user, char *response);
+int exit_admin(struct User *user, char *response);
 
 
 #endif

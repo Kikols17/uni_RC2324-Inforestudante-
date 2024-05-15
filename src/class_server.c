@@ -617,7 +617,12 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         return -1;
 
 
-    } else {
+    } else if ( strcmp(command, "EXIT")==0 ) {
+        /* Close admin session */
+        exit_admin(user, response);
+        return 0;
+    
+    } else{
         // Command not found
         sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
         return 1;

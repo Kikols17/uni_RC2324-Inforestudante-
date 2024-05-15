@@ -275,7 +275,8 @@ int list_cmds_udp(char *response) {
                                          "      - ADD_USER <username> <password> <type>\n"
                                          "      - DEL <username>\n"
                                          "      - LIST\n"
-                                         "      - QUIT_SERVER\n");
+                                         "      - QUIT_SERVER\n"
+                                         "      - EXIT\n");
     return 0;
 }
 
@@ -330,5 +331,13 @@ int list_users(struct User *user, char *response) {
 
     file_listusers(config_file_path, response);
 
+    return 0;
+}
+
+int exit_admin(struct User *user, char *response) {
+    /* Exits admin session */
+    sprintf(response, "Logging out of admin.\n");
+    user->user_id = -1;
+    user->name[0] = '\0';
     return 0;
 }

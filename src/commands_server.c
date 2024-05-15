@@ -150,7 +150,7 @@ int list_subscribe(struct User *user, char *response) {
             continue;
         }
         for (int j=0; j<classes[i].subscribed; j++) {
-            if (classes[i].subscribed_ids[j] == user->user_id) {
+            if ( strcmp(classes[i].subscribed_names[j], user->name)==0 ) {
                 sprintf(response+strlen(response), "\t-> %s\n", classes[i].name);
                 break;
             }
@@ -174,7 +174,7 @@ int subscribe_class(struct User *user, char *class_name, char *response) {
             continue;
         } else if (strcmp(classes[i].name, class_name)==0) {
             // class found
-            result = addsub_classstruct(&classes[i], user->user_id);
+            result = addsub_classstruct(&classes[i], user->name);
             if ( result==0) {
                 // subscription successful
                 sem_post(class_sem);

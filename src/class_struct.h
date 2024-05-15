@@ -14,12 +14,12 @@ typedef struct Class {
     char name[BUF_SIZE];
     int size;
     int subscribed;
-    int *subscribed_ids;
+    char (*subscribed_names)[BUF_SIZE];
 } Class;
 
 
 int create_classstruct(Class *c, char *name, int size);
 int destroy_classstruct(Class *c);
-int addsub_classstruct(Class *c, int id);
+int addsub_classstruct(Class *c, char *username);
 
 #endif

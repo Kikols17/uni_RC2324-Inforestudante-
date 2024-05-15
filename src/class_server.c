@@ -185,7 +185,7 @@ int create_shared_memory() {
         classes[i].name[0] = '\0';
         classes[i].size = -1;
         classes[i].subscribed = 0;
-        classes[i].subscribed_ids = NULL;
+        classes[i].subscribed_names = NULL;
         //printf("Class %d: \"%s\", size:%d, subscribed:%d\n", i, classes[i].name, classes[i].size, classes[i].subscribed);
     }
     return 0;

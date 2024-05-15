@@ -26,8 +26,8 @@ int create_classstruct(Class *c, char *name, int size) {
     strcpy(c->name, name);
     c->size = size;
     c->subscribed = 0;
-    c->subscribed_ids = (int *)malloc(size * sizeof(int));
-    if (c->subscribed_ids == NULL) {
+    c->subscribed_names = (char (*)[BUF_SIZE])malloc(size * sizeof(char [BUF_SIZE]));
+    if (c->subscribed_names == NULL) {
         printf("!!!ERROR!!!\n-> Could not allocate memory for class %s.\n", name);
         return -3;
     }
@@ -43,12 +43,12 @@ int destroy_classstruct(Class *c) {
     c->name[0] = '\0';
     c->size = -1;
     c->subscribed = 0;
-    free(c->subscribed_ids);
-    c->subscribed_ids = NULL;
+    free(c->subscribed_names);
+    c->subscribed_names = NULL;
     return 0;
 }
 
-int addsub_classstruct(Class *c, int id) {
+int addsub_classstruct(Class *c, char *username) {
     /* Add a subscriber to a class */
     if (c == NULL) {
         printf("!!!ERROR!!!\n-> Cannot add a subscriber to a NULL class.\n");
@@ -59,12 +59,12 @@ int addsub_classstruct(Class *c, int id) {
         return -1;
     }
     for (int i=0; i<c->subscribed; i++) {
-        if (c->subscribed_ids[i] == id) {
-            printf("!!!ERROR!!!\n-> User %d is already subscribed to class %s.\n", id, c->name);
+        if ( strcmp(c->subscribed_names[i], username)==0) {
+            printf("!!!ERROR!!!\n-> User \"%s\" is already subscribed to class %s.\n", username, c->name);
             return 1;
         }
     }
-    c->subscribed_ids[c->subscribed] = id;
+    strcpy(c->subscribed_names[c->subscribed], username);
     c->subscribed++;
     return 0;
 }

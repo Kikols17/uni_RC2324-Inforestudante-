@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
             printf("SERVER CLOSED\n");
             break;
         } else {
-            printf("\n%s", buffer_in);
+            printf("%s", buffer_in);
         }
 
         fgets(buffer_out, BUF_SIZE-1, stdin);                           // }

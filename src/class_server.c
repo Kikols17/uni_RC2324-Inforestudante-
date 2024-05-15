@@ -409,7 +409,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         /* List all commands (HELP) */
         end = strtok(NULL, " ");
         if (end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nHELP");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nHELP\n");
             return 1;
         } else {
             list_cmds_tcp(response);
@@ -423,14 +423,14 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         arg2 = strtok(NULL, " ");
         end = strtok(NULL, " ");
         if (arg1==NULL || arg2==NULL || end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGIN <username> <password>");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGIN <username> <password>\n");
             return 1;
         } else {
             if (login(user, arg1, arg2)==0 ) {
                 // login sucessful
                 if ( user->type==ADMINISTRADOR ) {
                     // user is "administrador", reject
-                    sprintf(response+strlen(response), "User \"%s\" with password \"%s\" is admin, cannot log in.\nUse UDP connection instead.", arg1, arg2);
+                    sprintf(response+strlen(response), "User \"%s\" with password \"%s\" is admin, cannot log in.\nUse UDP connection instead.\n", arg1, arg2);
                     user->user_id=-1;           // }
                     strcpy(user->name, "");     // } reset user;
                     return 2;
@@ -439,11 +439,11 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
                     char type[BUF_SIZE];
                     if ( user->type==ALUNO ) { strcpy(type, "aluno"); }     // } see if is aluno
                     else { strcpy(type, "professor"); }                     // } / professor
-                    sprintf(response+strlen(response), "Now logged in as %s \"%s\" with password \"%s\"", type, arg1, arg2);
+                    sprintf(response+strlen(response), "Now logged in as %s \"%s\" with password \"%s\"\n", type, arg1, arg2);
                 }
             } else {
                 // login unsucessful
-                sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\"", arg1, arg2);
+                sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\"\n", arg1, arg2);
                 return 2;
             }
             return 0;
@@ -452,12 +452,17 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
 
     } else if (user->user_id==-1) {
         /* If not logged in, request to log in */
-        sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\ncannot perform any actions, login first\nLOGIN <username> <password>");
+        sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\ncannot perform any actions, login first\nLOGIN <username> <password>\n");
         return 2;
 
 
     } else if ( strcmp(command, "LOGOUT")==0 ) {
         /* Close user session */
+        end = strtok(NULL, " ");
+        if (end!=NULL) {
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGOUT\n");
+            return 1;
+        }
         if ( logout(user, response)==0 ) {
             return 0;
         } else {
@@ -468,11 +473,11 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         /* List classes for this user (LIST_CLASSES) */
         end = strtok(NULL, " ");
         if (end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLIST_CLASSES");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLIST_CLASSES\n");
             return 1;
         } else {
             // TODO[META1]  list all classes
-            //sprintf(response+strlen(response), "Now listing classes for user ID:%d, name:\"%s\".", user->user_id, user->name);
+            //sprintf(response+strlen(response), "Now listing classes for user ID:%d, name:\"%s\".\n", user->user_id, user->name);
             list_classes(response);
             return 0;
         }
@@ -482,11 +487,11 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         /* List subscriptions for this user (LIST_SUBSCRIPTED) */
         end = strtok(NULL, " ");
         if (end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLIST_SUBSCRIBED");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLIST_SUBSCRIBED\n");
             return 1;
         } else {
             // TODO[META1]  list class subscriptions for user
-            //sprintf(response+strlen(response), "Now listing subscriptions for user ID:\"%d\", name:\"%s\".", user->user_id, user->name);
+            //sprintf(response+strlen(response), "Now listing subscriptions for user ID:\"%d\", name:\"%s\".\n", user->user_id, user->name);
             list_subscribe(user, response);
             return 0;
         }
@@ -497,7 +502,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         arg1 = strtok(NULL, " ");
         end = strtok(NULL, " ");
         if (arg1==NULL || end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nSUBSCRIBE_CLASS <class_name>");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nSUBSCRIBE_CLASS <class_name>\n");
             return 1;
         } else {
             // TODO[META1] subscribe user to class
@@ -514,18 +519,18 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             arg2 = strtok(NULL, " ");
             end = strtok(NULL, " ");
             if (arg1==NULL || arg2==NULL || end!=NULL) {
-                sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nCREATE_CLASS <class_name> <size>");
+                sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nCREATE_CLASS <class_name> <size>\n");
                 return 1;
             } else {
                 // TODO[META1] create class with name and size
-                //sprintf(response+strlen(response), "Now creating class \"%s\" with size \"%s\".", arg1, arg2);
+                //sprintf(response+strlen(response), "Now creating class \"%s\" with size \"%s\".\n", arg1, arg2);
                 create_class(arg1, atoi(arg2), response);
 
                 return 0;
             }
         } else {
             // If user is not a "professor"
-            sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\nuser ID:%d, name:\"%s\" must be \"professor\".", user->user_id, user->name);
+            sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\nuser ID:%d, name:\"%s\" must be \"professor\".\n", user->user_id, user->name);
             return 2;
         }
     
@@ -538,23 +543,23 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             arg2 = strtok(NULL, "\0");
             // no size limit, no *end pointer
             if (arg1==NULL || arg2==NULL) {
-                sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nSEND <class_name> <text that server will send to subscribers>");
+                sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nSEND <class_name> <text that server will send to subscribers>\n");
                 return 1;
             } else {
                 // TODO[META1] create class with name and size
-                sprintf(response+strlen(response), "Now sending message \"%s\" to class \"%s\".", arg2, arg1);
+                sprintf(response+strlen(response), "Now sending message \"%s\" to class \"%s\".\n", arg2, arg1);
                 return 0;
             }
         } else {
             // If user is not a "professor"
-            sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\nuser ID:%d, name:\"%s\" must be \"professor\".", user->user_id, user->name);
+            sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\nuser ID:%d, name:\"%s\" must be \"professor\".\n", user->user_id, user->name);
             return 2;
         }
     
 
     } else {
         /* Command not found */
-        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
+        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands.\n");
         return -1;
     }
     
@@ -570,7 +575,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
 
     if ( command==NULL ) {
         /* If command is empty */
-        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
+        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands\n");
         return 1;
     
     
@@ -578,7 +583,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         /* List all commands (HELP) */
         end = strtok(NULL, " ");
         if (end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nHELP");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nHELP\n");
             return 1;
         } else {
             list_cmds_udp(response);
@@ -592,25 +597,25 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         arg2 = strtok(NULL, " ");
         end = strtok(NULL, " ");
         if (arg1==NULL || arg2==NULL || end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGIN <username> <password>");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGIN <username> <password>\n");
             return 1;
         } else {
             if ( login(user, arg1, arg2)==0 ) {
                 // Login successful
                 if ( user->type == ADMINISTRADOR) {
                     // if user is admin, continue
-                    sprintf(response+strlen(response), "Now logged in as admin \"%s\" with password \"%s\".", arg1, arg2);
+                    sprintf(response+strlen(response), "Now logged in as admin \"%s\" with password \"%s\".\n", arg1, arg2);
                     return 0;
                 } else {
                     // if user is not admin, revoke login
-                    sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\nto access these features \"%s\" must be \"administrador\".\nTry TCP connection for \"aluno\" or \"professor\".", arg1);
+                    sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\nto access these features \"%s\" must be \"administrador\".\nTry TCP connection for \"aluno\" or \"professor\".\n", arg1);
                     user->user_id = -1;     // }
                     strcpy(user->name, ""); // } reset user
                     return 2;
                 }
             } else {
                 // If login fails"
-                sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\"", arg1, arg2);
+                sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\".\n", arg1, arg2);
                 return 2;
             }
         }
@@ -619,7 +624,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
     } else if (user->user_id==-1 || user->type!=ADMINISTRADOR) {
         /* Handle permissions (only "administradores" can run commands further down) */
         // if this user has no session initiated
-        sprintf(response+strlen(response), "-> PERMISSION DENIED:\nmust login as admin to run commands (see LOGIN).");
+        sprintf(response+strlen(response), "-> PERMISSION DENIED:\nmust login as admin to run commands (see LOGIN).\n");
         return 2;
     
 
@@ -630,7 +635,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         arg3 = strtok(NULL, " ");
         end = strtok(NULL, " ");
         if (arg1==NULL || arg2==NULL || arg3==NULL || end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nADD_USER <username> <password> <type>");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nADD_USER <username> <password> <type>\n");
             return 1;
         } else {
             // TODO[META1] create user
@@ -643,11 +648,11 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         arg1 = strtok(NULL, " ");
         end = strtok(NULL, " ");
         if (arg1==NULL || end!=NULL) {
-            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nDEL <username>");
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nDEL <username>\n");
             return 1;
         } else {
             // TODO[META1] delete user
-            sprintf(response+strlen(response), "Deleting user \"%s\".", arg1);
+            sprintf(response+strlen(response), "Deleting user \"%s\".\n", arg1);
             del_user(user, arg1, response);
             return 0;
         }
@@ -655,26 +660,45 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
 
     } else if ( strcmp(command, "LIST")==0 ) {
         /* List all users (LIST) */
-        // TODO[META1] list users
-        sprintf(response+strlen(response), "Listing users.");
-        list_users(response);
+        end = strtok(NULL, " ");
+        if (end!=NULL) {
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLIST\n");
+            return 1;
+        } else {
+            sprintf(response+strlen(response), "Listing users.\n");
+            list_users(response);
+        }
         return 0;
     
 
     } else if ( strcmp(command, "QUIT_SERVER")==0 ) {
         /* Close Server */
-        sprintf(response+strlen(response), "SERVER CLOSING.");
+        end = strtok(NULL, " ");
+        if (end!=NULL) {
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nQUIT_SERVER\n");
+            return 1;
+        }
+        sprintf(response+strlen(response), "SERVER CLOSING.\n");
         return -1;
 
 
     } else if ( strcmp(command, "LOGOUT")==0 ) {
         /* Close admin session */
-        logout(user, response);
+        end = strtok(NULL, " ");
+        if ( end!=NULL ) {
+            sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGOUT\n");
+            return 1;
+        }
+        if ( logout(user, response)==0 ) {
+            return 0;
+        } else {
+            return 2;
+        }
         return 0;
     
     } else{
         // Command not found
-        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands");
+        sprintf(response+strlen(response), "-> INVALID COMMAND!\nHELP for list of commands\n");
         return 1;
     }
 

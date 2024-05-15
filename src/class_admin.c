@@ -63,13 +63,16 @@ int main(int argc, char *argv[]) {
             printf("!!!ERROR!!!\n-> Could not receive message.\n");
             exit(1);
         }
-        printf("%s", buf_in);
+        printf("\n%s", buf_in);
 
         fgets(buf_out, BUF_SIZE, stdin);
         buf_out[strlen(buf_out)-1] = '\0'; // remove '\n' from end of line
         if (sendto(socket_fd, buf_out, BUF_SIZE-1, 0, (struct sockaddr *)&server_addr, slen) == -1) {
             printf("!!!ERROR!!!\n-> Could not send message.\n");
             exit(1);
+        }
+        if (strcmp(buf_out, "QUIT_SERVER") == 0) {
+            handle_sigint();
         }
     }
     return 0;

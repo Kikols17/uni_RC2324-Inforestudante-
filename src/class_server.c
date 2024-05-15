@@ -29,10 +29,15 @@
 #define BUF_SIZE 1024
 #endif
 #define N_CLASSES 16
+#define N_USERS 124
 
 
-void handle_sigint();
+void system_shutdown();
+void close_main();
+void close_tcp();
+
 int create_shared_memory();
+
 void *handle_tcp(void *PORTO_TURMAS);
 void *handle_udp(void *PORTO_CONFIG);
 
@@ -45,6 +50,8 @@ void handle_usecursor(struct User *user, char *response);
 
 
 pid_t pid;
+pid_t main_pid;
+pid_t child_pids[N_USERS];
 int server_fd_tcp = -1, server_fd_udp = -1;
 int client_fd_tcp = -1;
 int n_classes = N_CLASSES;
@@ -68,7 +75,9 @@ int main(int argc, char *argv[]) {
     int ret;
 
 
-    signal(SIGINT, handle_sigint);      // used to close server correctly
+    signal(SIGINT, close_main);     // used to close server correctly
+    signal(SIGQUIT, close_main);    // used to close server correctly
+    main_pid = getpid();                // get main process id
 
     if (argc!=4) {
         // make sure start arguments are correct
@@ -121,12 +130,13 @@ int main(int argc, char *argv[]) {
         printf("File \"%s\" is OK!\n", config_file_path);
     } else if (ret==-1) {
         printf("!!!ERROR!!!\n-> Could not open file \"%s\".\n", config_file_path);
-        handle_sigint();
+        system_shutdown();
     } else if (ret==-2) {
         printf("!!!ERROR!!!\n-> File \"%s\" is corrupted.\n", config_file_path);
-        handle_sigint();
+        system_shutdown();
     }
 
+    memset(child_pids, 0, N_USERS*sizeof(int));    // clear child_pids
 
     pthread_create(&tcp_thread, NULL, handle_tcp, &PORTO_TURMAS);        // handle tcp connections
     pthread_create(&udp_thread, NULL, handle_udp, &PORTO_CONFIG);        // handle udp connections
@@ -140,23 +150,26 @@ int main(int argc, char *argv[]) {
 
 
 
+void system_shutdown() {
+    kill(main_pid, SIGQUIT);
+}
 
-void handle_sigint() {
-    if (pid!=0) {
-        waitpid(-1, NULL, 0);       // wait for clients to be disconnected before we can close the server_fd_tcp
-        printf("-> Closing server_fd_tcp: %d\n", server_fd_tcp);
-        close(server_fd_tcp);
-
-        printf("-> Closing server_fd_udp: %d\n", server_fd_udp);
-        close(server_fd_udp);
-
-        printf("-> Closing Server\n");
+void close_main() {
+    printf("\n\n!!!SERVER CLOSING!!!\n");
+    for (int i=0; i<N_USERS; i++) {
+        if (child_pids[i]!=0) {
+            kill(child_pids[i], SIGQUIT);
+            waitpid(child_pids[i], NULL, 0);
+        }
     }
-    if (pid==0) {
-        write(client_fd_tcp, "-+!SERVER-CL0SING!+-", 1 + strlen("-+!SERVER-CL0SING!+-"));
-        printf("-> Closing client_fd_tcp: %d\n", client_fd_tcp);
-        close(client_fd_tcp);
-    }
+
+    printf("-> Closing server_fd_tcp: %d\n", server_fd_tcp);
+    close(server_fd_tcp);
+
+    printf("-> Closing server_fd_udp: %d\n", server_fd_udp);
+    close(server_fd_udp);
+
+    printf("-> Closing Server\n");
 
     sem_close(class_sem);       // }
     sem_unlink("class_sem");    // } close semaphore
@@ -164,6 +177,21 @@ void handle_sigint() {
     sem_unlink("config_sem");       // } close semaphore
     shmdt(classes);                     // }
     shmctl(shmid, IPC_RMID, NULL);      // } close shared memory
+
+    exit(1);
+}
+
+void close_tcp() {
+    write(client_fd_tcp, "-+!SERVER-CL0SING!+-", 1 + strlen("-+!SERVER-CL0SING!+-"));
+    printf("-> Closing client_fd_tcp: %d\n", client_fd_tcp);
+    close(client_fd_tcp);
+
+    for (int i=0; i<N_USERS; i++) {
+        if (child_pids[i]==getpid()) {
+            child_pids[i]=0;
+            break;
+        }
+    }
 
     exit(1);
 }
@@ -229,9 +257,18 @@ void *handle_tcp(void *PORTO_TURMAS_ptr) {
             if (pid == 0) {
                 // if not parent process
                 close(server_fd_tcp);
+                signal(SIGINT, SIG_IGN);
+                signal(SIGQUIT, close_tcp);
                 fprintf (stdout,"[TCP]+++++NEW CONNECTION FROM %s:%d.\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 process_client_tcp(client_fd_tcp);
                 exit(0);
+            }
+
+            for (int i=0; i<N_USERS; i++) {
+                if (child_pids[i]==0) {
+                    child_pids[i] = pid;
+                    break;
+                }
             }
             close(client_fd_tcp);
         }
@@ -344,7 +381,7 @@ void process_admin_udp() {
         printf("[UDP]<<<<< TO client port->%d: \"%s\".\n", si_outra.sin_port, buf_out);
         sendto(server_fd_udp, (const char *)buf_out, BUF_SIZE-1, MSG_CONFIRM, (const struct sockaddr *) &si_outra, slen); 
     }
-    handle_sigint();
+    system_shutdown();
 }
 
 

@@ -220,6 +220,7 @@ int create_shared_memory() {
 }
 
 
+
 void *handle_tcp(void *PORTO_TURMAS_ptr) {
     /* handle tcp connections (user connections) */
     int PORTO_TURMAS = *((int*) PORTO_TURMAS_ptr);      // get PORTO_CONFIG
@@ -386,7 +387,6 @@ void process_admin_udp() {
 
 
 
-
 int handle_requests_tcp(struct User *user, char *request, char *response) {
     /* Interpret and handle user requests */
     char *command = strtok(request, " ");     // get first argument
@@ -473,7 +473,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         } else {
             // TODO[META1]  list all classes
             //sprintf(response+strlen(response), "Now listing classes for user ID:%d, name:\"%s\".", user->user_id, user->name);
-            list_classes(user, response);
+            list_classes(response);
             return 0;
         }
 
@@ -519,7 +519,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             } else {
                 // TODO[META1] create class with name and size
                 //sprintf(response+strlen(response), "Now creating class \"%s\" with size \"%s\".", arg1, arg2);
-                create_class(user, arg1, atoi(arg2), response);
+                create_class(arg1, atoi(arg2), response);
 
                 return 0;
             }
@@ -657,7 +657,7 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
         /* List all users (LIST) */
         // TODO[META1] list users
         sprintf(response+strlen(response), "Listing users.");
-        list_users(user, response);
+        list_users(response);
         return 0;
     
 

@@ -143,7 +143,7 @@ int list_cmds_tcp(char *response) {
     return 0;
 }
 
-int list_classes(struct User *user, char *response) {
+int list_classes(char *response) {
     /* Lists all classes */
     response[0] = '\0'; // clear response buffer
     sem_wait(class_sem);
@@ -226,7 +226,7 @@ int subscribe_class(struct User *user, char *class_name, char *response) {
     return -1;
 }
 
-int create_class(struct User *user, char *class_name, int size, char *response) {
+int create_class(char *class_name, int size, char *response) {
     /* Creates class on array classes
      *
      * return:
@@ -308,7 +308,7 @@ int add_user(struct User *user, char *user_name, char *password, char *type, cha
     ret = file_adduser(config_file_path, user_name, password, type);
 
     if (ret == 0) {
-        sprintf(response, "User \"%s\" with password \"%s\" and type <%s> added to config file.\n", user_name, password, type);
+        sprintf(response, "User \"%s\" with password \"%s\" and type <%s> added to config file by \"%s\".\n", user_name, password, type, user->name);
         return 0;
     } else if (ret == 1) {
         sprintf(response, "User \"%s\" already exists in config file.\n", user_name);
@@ -331,7 +331,7 @@ int del_user(struct User *user, char *user_name, char* response) {
     int ret;
     ret = file_removeuser(config_file_path, user_name);
     if (ret == 0) {
-        sprintf(response, "User \"%s\" deleted from config file.\n", user_name);
+        sprintf(response, "User \"%s\" deleted from config file by \"%s\".\n", user_name, user->name);
         return 0;
     } else if (ret == 1) {
         sprintf(response, "User \"%s\" not found in config file.\n", user_name);
@@ -344,7 +344,7 @@ int del_user(struct User *user, char *user_name, char* response) {
     return -1;
 }
 
-int list_users(struct User *user, char *response) {
+int list_users(char *response) {
     /* Lists all users */
 
     file_listusers(config_file_path, response);

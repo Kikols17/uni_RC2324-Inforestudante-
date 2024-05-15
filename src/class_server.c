@@ -55,7 +55,6 @@ Class *classes;
 sem_t *class_sem;
 
 // file stuff
-FILE *config_file;
 char config_file_path[BUF_SIZE];
 sem_t *config_sem;
 
@@ -65,6 +64,8 @@ int main(int argc, char *argv[]) {
 
     int PORTO_TURMAS;
     int PORTO_CONFIG;
+
+    int ret;
 
 
     signal(SIGINT, handle_sigint);      // used to close server correctly
@@ -89,14 +90,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    strcpy(config_file_path, argv[3]);
-    config_file = fopen(argv[3], "r+");
-    if (config_file==NULL) {
-        // make sure the config file exists
-        printf("!!!INVALID ARGUMENTS!!!\n-> <CONFIG_FILEPATH> not found\n");
-        return 1;
-    }
-
+    // create shared memory
     if (create_shared_memory()==-1) {
         // could not create shared memory
         printf("!!!ERROR!!!\n-> Could not create shared memory.\n");
@@ -116,6 +110,21 @@ int main(int argc, char *argv[]) {
         // could not create semaphore
         printf("!!!ERROR!!!\n-> Could not create semaphore.\n");
         return 1;
+    }
+
+
+    strcpy(config_file_path, argv[3]);
+    // check file integrity
+    ret = file_checkintegrity(config_file_path);
+    if (ret==0) {
+        // could not open file
+        printf("File \"%s\" is OK!\n", config_file_path);
+    } else if (ret==-1) {
+        printf("!!!ERROR!!!\n-> Could not open file \"%s\".\n", config_file_path);
+        handle_sigint();
+    } else if (ret==-2) {
+        printf("!!!ERROR!!!\n-> File \"%s\" is corrupted.\n", config_file_path);
+        handle_sigint();
     }
 
 
@@ -142,8 +151,6 @@ void handle_sigint() {
         close(server_fd_udp);
 
         printf("-> Closing Server\n");
-
-        fclose(config_file);    // close config file
     }
     if (pid==0) {
         write(client_fd_tcp, "-+!SERVER-CL0SING!+-", 1 + strlen("-+!SERVER-CL0SING!+-"));

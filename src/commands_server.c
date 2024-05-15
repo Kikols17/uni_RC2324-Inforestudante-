@@ -5,6 +5,7 @@
 
 #include "commands_server.h"
 #include "class_struct.h"
+#include "file_manager.h"
 
 #ifndef BUF_SIZE
 #define BUF_SIZE 1024
@@ -13,7 +14,7 @@
 extern int n_classes;
 
 // file stuff
-extern FILE *config_file;
+extern char config_file_path[BUF_SIZE];
 extern sem_t *config_sem;
 
 // class stuff
@@ -30,6 +31,31 @@ int login(struct User *user, char *user_name, char *password) {
      *      1-> user not found
      *      2-> incorrect password
      */
+
+    int ret;
+    char type[BUF_SIZE];
+    ret = file_finduser(config_file_path, user_name, password, type);
+    if (ret == 0) {
+        user->user_id = 0; // TODO: user_id
+        strcpy(user->name, user_name);
+        printf("Type: \"%s\"\n", type);
+        if (strcmp(type, "aluno") == 0) {
+            user->type = ALUNO;
+        } else if (strcmp(type, "professor") == 0) {
+            user->type = PROFESSOR;
+        } else if (strcmp(type, "administrator") == 0) {
+            user->type = ADMINISTRADOR;
+        } else {
+            // incorrect format
+            printf("pila\n");
+            return -1;
+        }
+        return 0;
+    } else {
+        return ret;
+    }
+    
+    /*
     char *line = NULL;
     size_t len = BUF_SIZE;
     size_t size;
@@ -52,9 +78,9 @@ int login(struct User *user, char *user_name, char *password) {
         }
 
         if (strcmp(user_name, possible_username) == 0) {
-            /* user name match */
+            / user name match /
             if (strcmp(password, possible_password) == 0) {
-                /* password match */
+                / password match /
                 user->user_id = id;
                 strcpy(user->name, possible_username);
                 if (strcmp(possible_type, "aluno") == 0) {
@@ -71,7 +97,7 @@ int login(struct User *user, char *user_name, char *password) {
                 sem_post(config_sem);
                 return 0;
             } else {
-                /* password mismatch */
+                / password mismatch /
                 sem_post(config_sem);
                 return 2;
             }
@@ -79,6 +105,7 @@ int login(struct User *user, char *user_name, char *password) {
         id++;
     }
     sem_post(config_sem);
+    */
     return 1;
 }
 
@@ -258,77 +285,50 @@ int add_user(struct User *user, char *user_name, char *password, char *type, cha
      *         -1-> invalid type
      *         (positive integer)-> user added
      */
+    int ret;
+    ret = file_adduser(config_file_path, user_name, password, type);
 
-    char *line = NULL;
-    size_t len = BUF_SIZE;
-    size_t size;
-
-    if ( strcmp(type, "aluno")!=0 && strcmp(type, "professor")!=0 && strcmp(type, "administrator")!=0) {
-        sprintf(response + strlen(response), "!!!ERROR!!!\n-> Invalid type \"%s\" (aluno/professor/administrator).\n", type);
+    if (ret == 0) {
+        sprintf(response, "User \"%s\" with password \"%s\" and type <%s> added to config file.\n", user_name, password, type);
+        return 0;
+    } else if (ret == 1) {
+        sprintf(response, "User \"%s\" already exists in config file.\n", user_name);
+        return 1;
+    } else if (ret == -1) {
+        sprintf(response, "!!!ERROR!!!\n-> Could not add user \"%s\" to config file [File may be corrupted].\n", user_name);
         return -1;
+    } else if (ret == -2) {
+        sprintf(response, "!!!ERROR!!!\n-> Invalid type \"%s\" (must be \"aluno\" \"professor\" \"administrador\").\n", type);
+        return -2;
     }
 
-    sem_wait(config_sem);
-    rewind(config_file);    // from beginning of file;
-    int pos = 0;
-    while ((size = getline(&line, &len, config_file))!=-1) {
-        // get to the end of file, and count lines (users)
-        pos++;
-    }
-    fprintf(config_file, "%s;%s;%s\n", user_name, password, type);
-    sem_post(config_sem);
-    sprintf(response + strlen(response), "User \"%s\" with password \"%s\" and type <%s> added to config file on line %d.\n", user_name, password, type, pos);
+
+
     return 0;
 }
 
 int del_user(struct User *user, char *user_name, char* response) {
-    // TODO
-    printf("[TODO]: User \"%s\" deleted user with username \"%s\".\n", user->name, user_name);
-    return -1;
     /* Deletes entry on config file based on "user_name" */
-    
-    char *line = NULL;
-    size_t len = BUF_SIZE;
-    size_t size;
-
-    sem_wait(config_sem);
-    rewind(config_file);    // from beginning of file;
-    while ( (size = getline(&line, &len, config_file))!=0 ) {
-        if (strcmp(strtok(line, ";"), user_name) == 0) {
-            // user found
-            sem_post(config_sem);
-            sprintf(response + strlen(response), "User \"%s\" deleted from config file.\n", user_name);
-            return 0;
-        }
+    int ret;
+    ret = file_removeuser(config_file_path, user_name);
+    if (ret == 0) {
+        sprintf(response, "User \"%s\" deleted from config file.\n", user_name);
+        return 0;
+    } else if (ret == 1) {
+        sprintf(response, "User \"%s\" not found in config file.\n", user_name);
+        return 1;
+    } else {
+        sprintf(response, "!!!ERROR!!!\n-> Could not delete user \"%s\" from config file [File may be corrupted].\n", user_name);
+        return -1;
     }
-    // user not found
-    sem_post(config_sem);
-    sprintf(response + strlen(response), "!!!ERROR!!!\n-> User \"%s\" not found.\n", user_name);
+    
     return -1;
 }
 
 int list_users(struct User *user, char *response) {
-    // TODO
-    printf("[TODO]: User \"%s\" listing all users.\n", user->name);
-
     /* Lists all users */
-    
-    char *line = NULL;
-    size_t len = BUF_SIZE;
-    size_t size;
 
-    char *username, *type;
+    file_listusers(config_file_path, response);
 
-    sem_wait(config_sem);
-    rewind(config_file);    // from beginning of file;
-    sprintf(response, "Users:\n");
-    while ( (size = getline(&line, &len, config_file))!=-1 ) {
-        line[size - 1] = '\0';
-        username = strtok(line, ";");
-        type = strtok(NULL, ";");       // discard this
-        type = strtok(NULL, ";");
-        sprintf(response+strlen(response), "%s - %s\n", username, type);
-    }
-    sem_post(config_sem);
     return 0;
 }

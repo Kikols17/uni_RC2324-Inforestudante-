@@ -23,8 +23,7 @@ int file_checkintegrity(char *filename) {
      * Returns:
      *       0: file is correct
      *      -1: file not found
-     *      -2: incorrect amount of arguments
-     *      -3: incorrect type
+     *      -2: invalid format
      */
     sem_wait(config_sem);
     FILE *file;
@@ -46,7 +45,7 @@ int file_checkintegrity(char *filename) {
         line[size-1] = '\0'; // remove '\n' from end of line
         username = strtok(line, ";");
         password = strtok(NULL, ";");
-        type = strtok(NULL, ";");
+        type = strtok(NULL, "\n");
         //printf("Size: %ld, Arguments: \"%s\" \"%s\" \"%s\"\n", size, username, password, type);
         if (username==NULL || password==NULL || type==NULL) {
             // incorrect amount of arguments
@@ -59,7 +58,7 @@ int file_checkintegrity(char *filename) {
             printf("Incorrect type: %s\n", type);
             fclose(file);
             sem_post(config_sem);
-            return -3;
+            return -2;
         }
     }
     // Reached end of file, must be correct
@@ -77,11 +76,10 @@ int file_finduser(char *filename, char *username, char *password, char *type) {
      *      type: empty buffer to write the type, if successful
      * 
      * Returns:
+     *       2: user found, password mismatch
      *       1: user not found
      *       0: user found, password match
-     *      -1: file not found
-     *      -2: incorrect amount of arguments
-     *      -3: user found, password mismatch
+     *      -1: file not found / corrupted
      */
     sem_wait(config_sem);
     FILE *file;
@@ -101,12 +99,12 @@ int file_finduser(char *filename, char *username, char *password, char *type) {
     while ( (int)(size = getline(&line, &len, file))!=-1 ) {
         possible_username = strtok(line, ";");
         possible_password = strtok(NULL, ";");
-        possible_type = strtok(NULL, ";");
+        possible_type = strtok(NULL, "\n");
         if (possible_username==NULL || possible_password==NULL || possible_type==NULL) {
             // incorrect amount of arguments
             fclose(file);
             sem_post(config_sem);
-            return -2;
+            return -1;
         }
         if (strcmp(possible_username, username)==0) {
             // user found
@@ -121,7 +119,7 @@ int file_finduser(char *filename, char *username, char *password, char *type) {
                 // password mismatch
                 fclose(file);
                 sem_post(config_sem);
-                return -3;
+                return 2;
             }
         }
     }
@@ -142,8 +140,8 @@ int file_adduser(char *filename, char *username, char *password, char *type) {
      * Returns:
      *       1: user already exists
      *       0: user added
-     *      -1: error opening file
-     *      -2: incorrect amount of arguments
+     *      -1: error opening file / corrupted
+     *      -2: incorrect type
      */
     sem_wait(config_sem);
     FILE *file;
@@ -155,6 +153,14 @@ int file_adduser(char *filename, char *username, char *password, char *type) {
         return -1;
     }
 
+    // check if "type" is valid
+    if (strcmp(type, "aluno")!=0 && strcmp(type, "professor")!=0 && strcmp(type, "administrator")!=0) {
+        // incorrect type
+        fclose(file);
+        sem_post(config_sem);
+        return -2;
+    }
+
     char *line = NULL;
     size_t len = BUF_SIZE;
     size_t size;
@@ -163,12 +169,12 @@ int file_adduser(char *filename, char *username, char *password, char *type) {
     while ( (int)(size = getline(&line, &len, file))!=-1 ) {
         possible_username = strtok(line, ";");
         possible_password = strtok(NULL, ";");
-        possible_type = strtok(NULL, ";");
+        possible_type = strtok(NULL, "\n");
         if (possible_username==NULL || possible_password==NULL || possible_type==NULL) {
             // incorrect amount of arguments
             fclose(file);
             sem_post(config_sem);
-            return -2;
+            return -1;
         }
         if (strcmp(possible_username, username)==0) {
             // user already exists
@@ -193,8 +199,7 @@ int file_removeuser(char *filename, char *username) {
      * Returns:
      *       1: user not found
      *       0: user removed
-     *      -1: error opening file
-     *      -2: incorrect amount of arguments
+     *      -1: error opening file / corrupted
      */
     sem_wait(config_sem);
     FILE *file;
@@ -219,12 +224,12 @@ int file_removeuser(char *filename, char *username) {
         strcpy(line_aux, line);
         possible_username = strtok(line, ";");
         possible_password = strtok(NULL, ";");
-        possible_type = strtok(NULL, ";");
+        possible_type = strtok(NULL, "\n");
         if (possible_username==NULL || possible_password==NULL || possible_type==NULL) {
             // incorrect amount of arguments
             fclose(file);
             sem_post(config_sem);
-            return -2;
+            return -1;
         }
         if (strcmp(possible_username, username)!=0) {
             // not user, copy to writing buffer
@@ -246,6 +251,50 @@ int file_removeuser(char *filename, char *username) {
     fclose(file);
     sem_post(config_sem);
     return ret;
+}
+
+int file_listusers(char *filename, char *response) {
+    /* List users in file
+     * Inputs:
+     *      filename: name of file
+     *      response: buffer to write response
+     * 
+     * Returns:
+     *      0: success
+     *     -1: error opening file / corrupted
+     */
+    sem_wait(config_sem);
+    FILE *file;
+    
+    file = fopen(filename, "r");
+    if (file == NULL) {
+        // error opening file
+        sem_post(config_sem);
+        return -1;
+    }
+
+    sprintf(response, "Users:\n");
+
+    char *line = NULL;
+    size_t len = BUF_SIZE;
+    size_t size;
+    
+    char *possible_username, *possible_password, *possible_type;
+    while ( (int)(size = getline(&line, &len, file))!=-1 ) {
+        possible_username = strtok(line, ";");
+        possible_password = strtok(NULL, ";");
+        possible_type = strtok(NULL, "\n");
+        if (possible_username==NULL || possible_password==NULL || possible_type==NULL) {
+            // incorrect amount of arguments
+            fclose(file);
+            sem_post(config_sem);
+            return -1;
+        }
+        sprintf(response+strlen(response), "\t%s -> %s\n", possible_username, possible_type);
+    }
+    fclose(file);
+    sem_post(config_sem);
+    return 0;
 }
 
 #endif

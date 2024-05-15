@@ -10,11 +10,15 @@
 #define BUF_SIZE 1024
 #endif
 
+#ifndef N_USERS
+#define N_USERS 124
+#endif
+
 typedef struct Class {
     char name[BUF_SIZE];
     int size;
     int subscribed;
-    char (*subscribed_names)[BUF_SIZE];
+    char subscribed_names[N_USERS][BUF_SIZE];
 } Class;
 
 

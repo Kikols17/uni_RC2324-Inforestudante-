@@ -22,11 +22,17 @@ int create_classstruct(Class *c, char *name, int size) {
     if (size <= 0) {
         printf("!!!ERROR!!!\n-> Cannot create a class with size <= 0.\n");
         return -2;
+    } else if (size > N_USERS) {
+        printf("!!!ERROR!!!\n-> Cannot create a class with size > N_USERS: %d.\n", N_USERS);
+        return -3;
     }
     strcpy(c->name, name);
     c->size = size;
     c->subscribed = 0;
-    c->subscribed_names = (char (*)[BUF_SIZE])malloc(size * sizeof(char [BUF_SIZE]));
+    for (int i=0; i<size; i++) {
+        // reset all subscribed names
+        c->subscribed_names[i][0] = '\0';
+    }
     if (c->subscribed_names == NULL) {
         printf("!!!ERROR!!!\n-> Could not allocate memory for class %s.\n", name);
         return -3;
@@ -43,8 +49,10 @@ int destroy_classstruct(Class *c) {
     c->name[0] = '\0';
     c->size = -1;
     c->subscribed = 0;
-    free(c->subscribed_names);
-    c->subscribed_names = NULL;
+    for (int i=0; i<c->size; i++) {
+        // reset all subscribed names
+        c->subscribed_names[i][0] = '\0';
+    }
     return 0;
 }
 

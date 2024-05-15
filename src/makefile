@@ -1,5 +1,9 @@
 all: class_server class_client class_admin
 
+configs:
+	# Resets configs to default
+	echo "micas;castela;aluno\njoel;1234;professor\nadam;eve;administrator" > class_config.config
+
 
 test: file_manager_test.o file_manager.o
 	gcc -Wall -Wextra file_manager_test.o file_manager.o -o file_manager_test.exe

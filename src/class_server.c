@@ -23,6 +23,7 @@
 
 #include "commands_server.h"
 #include "class_struct.h"
+#include "file_manager.h"
 
 #ifndef BUF_SIZE
 #define BUF_SIZE 1024
@@ -55,6 +56,7 @@ sem_t *class_sem;
 
 // file stuff
 FILE *config_file;
+char config_file_path[BUF_SIZE];
 sem_t *config_sem;
 
 
@@ -87,6 +89,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    strcpy(config_file_path, argv[3]);
     config_file = fopen(argv[3], "r+");
     if (config_file==NULL) {
         // make sure the config file exists

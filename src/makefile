@@ -1,9 +1,13 @@
 all: class_server class_client
 
 
+test: file_manager_test.o file_manager.o
+	gcc -Wall -Wextra file_manager_test.o file_manager.o -o file_manager_test.exe
 
-class_server: class_server.o commands_server.o class_struct.o
-	gcc -Wall -Wextra class_server.o commands_server.o class_struct.o -pthread -o class_server
+
+
+class_server: class_server.o commands_server.o class_struct.o file_manager.o
+	gcc -Wall -Wextra class_server.o commands_server.o class_struct.o file_manager.o -pthread -o class_server
 
 class_client: class_client.o
 	gcc -Wall -Wextra class_client.o -o class_client
@@ -22,8 +26,15 @@ commands_server.o: commands_server.c commands_server.h
 class_struct.o: class_struct.c class_struct.h
 	gcc -Wall -Wextra -c class_struct.c
 
+file_manager.o: file_manager.c file_manager.h
+	gcc -Wall -Wextra -c file_manager.c
+
+
+file_manager_test.o: file_manager_test.c
+	gcc -Wall -Wextra -c file_manager_test.c
+
 
 
 clean:
 	rm -f *.o
-	rm -f class_server class_client
+	rm -f class_server class_client file_manager_test.exe

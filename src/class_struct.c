@@ -6,14 +6,18 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 #include "class_struct.h"
+
 
 #ifndef BUF_SIZE
 #define BUF_SIZE 1024
 #endif
 
 
-int create_classstruct(Class *c, char *name, int size) {
+int create_classstruct(Class *c, int n, char *name, int size) {
     /* Allocate memory for a new class */
     if (c->name[0] != '\0') {
         printf("!!!ERROR!!!\n-> Cannot create a class in a non-empty struct.\n");
@@ -33,10 +37,10 @@ int create_classstruct(Class *c, char *name, int size) {
         // reset all subscribed names
         c->subscribed_names[i][0] = '\0';
     }
-    if (c->subscribed_names == NULL) {
-        printf("!!!ERROR!!!\n-> Could not allocate memory for class %s.\n", name);
-        return -3;
-    }
+    bzero(&c->mutilcast_addr, sizeof(c->mutilcast_addr));
+    c->mutilcast_addr.sin_family = AF_INET;
+    c->mutilcast_addr.sin_addr.s_addr = htonl(BASE_MULTICAST_ADDR + n);
+    c->mutilcast_addr.sin_port = htons(0);
     return 0;
 }
 
@@ -53,6 +57,7 @@ int destroy_classstruct(Class *c) {
         // reset all subscribed names
         c->subscribed_names[i][0] = '\0';
     }
+    bzero(&c->mutilcast_addr, sizeof(c->mutilcast_addr));
     return 0;
 }
 
@@ -76,5 +81,6 @@ int addsub_classstruct(Class *c, char *username) {
     c->subscribed++;
     return 0;
 }
+
 
 #endif

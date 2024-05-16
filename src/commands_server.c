@@ -3,6 +3,8 @@
 #include <string.h>
 #include <semaphore.h>
 
+#include <arpa/inet.h>
+
 #include "commands_server.h"
 #include "class_struct.h"
 #include "file_manager.h"
@@ -153,7 +155,11 @@ int list_classes(char *response) {
             // no class on this slot
             continue;
         }
-        sprintf(response + strlen(response), "\t- \"%s\": vacant-%d\n", classes[i].name, classes[i].size-classes[i].subscribed);
+        if (classes[i].size==classes[i].subscribed) {
+            sprintf(response+strlen(response), "\033[1;31m");
+        }
+        sprintf(response+strlen(response), "\t- \"%s\"\tvacant-%d\tmc_ip:%s\n", classes[i].name, classes[i].size-classes[i].subscribed, inet_ntoa(classes[i].mutilcast_addr.sin_addr));
+        sprintf(response+strlen(response), "\033[0m");
     }
     sem_post(class_sem);
     return 0;
@@ -262,7 +268,7 @@ int create_class(char *class_name, int size, char *response) {
         sprintf(response + strlen(response), "!!!ERROR!!!\n-> No more space for classes!\n");
         return -3;
     } else {
-        create_classstruct(&classes[new_index], class_name, size);
+        create_classstruct(&classes[new_index], new_index, class_name, size);
         if (classes[new_index].name[0] == '\0') {
             // creation failed
             sem_post(class_sem);
@@ -271,7 +277,7 @@ int create_class(char *class_name, int size, char *response) {
         }
         // creation successful, class created
         sem_post(class_sem);
-        sprintf(response + strlen(response), "Class \"%s\" created with size %d on slot %d.\n", classes[new_index].name, classes[new_index].size, new_index);
+        sprintf(response + strlen(response), "Class \"%s\" created with size %d and multicast ip:%s.\n", classes[new_index].name, classes[new_index].size, inet_ntoa(classes[new_index].mutilcast_addr.sin_addr));
         return new_index;
     }
 }

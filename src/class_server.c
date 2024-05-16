@@ -351,13 +351,15 @@ void process_client_tcp(int client_fd_tcp) {
     int nread = 0;
     char buffer_in[BUF_SIZE];       // buffer para guardar msgs de entrada
     char buffer_out[BUF_SIZE];      // buffer para escrever as msgs de saida
-    char welcome_message[] = "Welcome to Server. Login with:\nLOGIN <user_name> <password>\n\n> ";  // message to be sent in the beggining
+    char welcome_message[] = "Welcome to Server. Login with:\nLOGIN <user_name> <password>";  // message to be sent in the beggining
 
     struct User user;           // }
     user.user_id = -1;          // } used to autenticate user
 
 
-    write(client_fd_tcp, welcome_message, 1 + strlen(welcome_message));     // } welcome new client
+    strcpy(buffer_out, welcome_message);
+    handle_usecursor(&user, buffer_out);
+    write(client_fd_tcp, buffer_out, 1 + strlen(buffer_out));               // } welcome new client
     printf("[TCP]<<<<< WELCOME fd->%d.\n", client_fd_tcp);                  // }
 
     while (1) {

@@ -51,7 +51,7 @@ void handle_usecursor(struct User *user, char *response);
 
 pid_t pid;
 pid_t main_pid;
-pid_t child_pids[N_USERS];
+
 int server_fd_tcp = -1, server_fd_udp = -1;
 int client_fd_tcp = -1;
 int n_classes = N_CLASSES;
@@ -60,6 +60,12 @@ int n_classes = N_CLASSES;
 int shmid;
 Class *classes;
 sem_t *class_sem;
+
+// child stuff
+int shmid_children;
+int *child_pids;
+sem_t *child_sem;
+
 
 // file stuff
 char config_file_path[BUF_SIZE];
@@ -75,8 +81,8 @@ int main(int argc, char *argv[]) {
     int ret;
 
 
-    signal(SIGINT, close_main);     // used to close server correctly
-    signal(SIGQUIT, close_main);    // used to close server correctly
+    signal(SIGINT, close_main);             // used to close server correctly
+    signal(SIGQUIT, close_main);            // used to close server correctly
     main_pid = getpid();                // get main process id
 
     if (argc!=4) {
@@ -109,6 +115,13 @@ int main(int argc, char *argv[]) {
     // create semaphore
     class_sem = sem_open("class_sem", O_CREAT, 0666, 1);
     if (class_sem == SEM_FAILED) {
+        // could not create semaphore
+        printf("!!!ERROR!!!\n-> Could not create semaphore.\n");
+        return 1;
+    }
+
+    child_sem = sem_open("child_sem", O_CREAT, 0666, 1);
+    if (child_sem == SEM_FAILED) {
         // could not create semaphore
         printf("!!!ERROR!!!\n-> Could not create semaphore.\n");
         return 1;
@@ -175,8 +188,12 @@ void close_main() {
     sem_unlink("class_sem");    // } close semaphore
     sem_close(config_sem);          // }
     sem_unlink("config_sem");       // } close semaphore
-    shmdt(classes);                     // }
-    shmctl(shmid, IPC_RMID, NULL);      // } close shared memory
+    sem_close(child_sem);               // }
+    sem_unlink("child_sem");            // } close semaphore
+    shmdt(classes);                         // }
+    shmctl(shmid, IPC_RMID, NULL);          // } close shared memory
+    shmdt(child_pids);                          // }
+    shmctl(shmid_children, IPC_RMID, NULL);     // } close shared memory
 
     exit(1);
 }
@@ -186,12 +203,15 @@ void close_tcp() {
     printf("-> Closing client_fd_tcp: %d\n", client_fd_tcp);
     close(client_fd_tcp);
 
-    for (int i=0; i<N_USERS; i++) {
+    sem_wait(child_sem);
+    for (int i=1; i<N_USERS+1; i++) {
         if (child_pids[i]==getpid()) {
-            child_pids[i]=0;
+            child_pids[i] = 0;
             break;
         }
     }
+    child_pids[0]--;
+    sem_post(child_sem);
 
     exit(1);
 }
@@ -200,14 +220,13 @@ int create_shared_memory() {
     shmid = shmget(IPC_PRIVATE, sizeof(Class)*N_CLASSES, IPC_CREAT | 0666);
     if (shmid < 0) {
         printf("!!!ERROR!!!\n-> Could not create shared memory.\n");
-        return -1;
+        kill(main_pid, SIGQUIT);
     }
     classes = (Class *)shmat(shmid, NULL, 0);
     if (classes == (Class *)-1) {
         printf("!!!ERROR!!!\n-> Could not assign shared memory.\n");
-        return -1;
+        kill(main_pid, SIGQUIT);
     }
-
     // set all classes to empty
     for (int i=0; i<N_CLASSES; i++) {
         classes[i].name[0] = '\0';
@@ -218,6 +237,18 @@ int create_shared_memory() {
         }
         //printf("Class %d: \"%s\", size:%d, subscribed:%d\n", i, classes[i].name, classes[i].size, classes[i].subscribed);
     }
+
+    shmid_children = shmget(IPC_PRIVATE, sizeof(int)*(1+N_USERS), IPC_CREAT | 0666);
+    if (shmid_children < 0) {
+        printf("!!!ERROR!!!\n-> Could not create shared memory.\n");
+        kill(main_pid, SIGQUIT);
+    }
+    child_pids = (int *)shmat(shmid_children, NULL, 0);
+    if (child_pids == (int *)-1) {
+        printf("!!!ERROR!!!\n-> Could not assign shared memory.\n");
+        kill(main_pid, SIGQUIT);
+    }
+    bzero(child_pids, (N_USERS+1)*sizeof(int));
     return 0;
 }
 
@@ -255,7 +286,9 @@ void *handle_tcp(void *PORTO_TURMAS_ptr) {
 
         // wait for new connection
         client_fd_tcp = accept(server_fd_tcp, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_size);
-        if (client_fd_tcp > 0) {
+        sem_wait(child_sem);
+        if (client_fd_tcp > 0  &&  child_pids[0]<N_USERS) {
+            sem_post(child_sem);
             pid = fork();
             if (pid == 0) {
                 // if not parent process
@@ -264,16 +297,20 @@ void *handle_tcp(void *PORTO_TURMAS_ptr) {
                 signal(SIGQUIT, close_tcp);
                 fprintf (stdout,"[TCP]+++++NEW CONNECTION FROM %s:%d.\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 process_client_tcp(client_fd_tcp);
-                exit(0);
+                kill(getpid(), SIGQUIT);
             }
 
-            for (int i=0; i<N_USERS; i++) {
+            sem_wait(child_sem);
+            for (int i=1; i<N_USERS+1; i++) {
                 if (child_pids[i]==0) {
                     child_pids[i] = pid;
-                    break;
                 }
             }
+            child_pids[0]++;
+            sem_post(child_sem);
             close(client_fd_tcp);
+        } else {
+            sem_post(child_sem);
         }
     }
 }
@@ -343,7 +380,6 @@ void process_client_tcp(int client_fd_tcp) {
 
         fflush(stdout);
     }
-    close(client_fd_tcp);
     return;
 }
 

@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
             printf("!!!ERROR!!!\n-> Could not receive message.\n");
             exit(1);
         }
-        printf("\n%s", buf_in);
+        printf("%s", buf_in);
 
         fgets(buf_out, BUF_SIZE, stdin);
         buf_out[strlen(buf_out)-1] = '\0'; // remove '\n' from end of line

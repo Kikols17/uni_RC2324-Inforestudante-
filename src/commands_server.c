@@ -282,10 +282,34 @@ int create_class(char *class_name, int size, char *response) {
     }
 }
 
-int send_message(struct User *user, char *class_name, char *message) {
-    // TODO
-    printf("[TODO]: User \"%s\" send message to class \"%s\", message \"%s\".\n", user->name, class_name, message);
-    return -1;
+int send_message(struct User *user, char *class_name, char *message, char *response) {
+    /* Send message to multicast address of class
+     *
+     *
+     *
+     */
+    int ret;
+    sem_wait(class_sem);
+    for (int i=0; i<n_classes; i++) {
+        if (classes[i].name[0] == '\0') {
+            // no class on this slot
+            continue;
+        } else if (strcmp(classes[i].name, class_name)==0) {
+            ret = sendmsg_classstruct(&classes[i], message);
+            if (ret!=0) {
+                sprintf(response+strlen(response), "!!!ERROR!!!\n-> Could not send message to class \"%s\". ErrN:%d\n", class_name, ret);
+                sem_post(class_sem);
+                return -1;
+            } else {
+                sprintf(response+strlen(response), "Professor \"%s\" sent message \"%s\" to class \"%s\" with multicast address <%s>.\n", user->name, message, class_name, inet_ntoa(classes[i].mutilcast_addr.sin_addr));
+                sem_post(class_sem);
+                return 0;
+            }
+        }
+    }
+    sprintf(response+strlen(response), "!!!ERROR!!!\n-> Class \"%s\" not found.\n", class_name);
+    sem_post(class_sem);
+    return -2;
 }
 
 

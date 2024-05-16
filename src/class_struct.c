@@ -40,7 +40,7 @@ int create_classstruct(Class *c, int n, char *name, int size) {
     bzero(&c->mutilcast_addr, sizeof(c->mutilcast_addr));
     c->mutilcast_addr.sin_family = AF_INET;
     c->mutilcast_addr.sin_addr.s_addr = htonl(BASE_MULTICAST_ADDR + n);
-    c->mutilcast_addr.sin_port = htons(0);
+    c->mutilcast_addr.sin_port = htons(5000+n);
     return 0;
 }
 
@@ -82,5 +82,43 @@ int addsub_classstruct(Class *c, char *username) {
     return 0;
 }
 
+int sendmsg_classstruct(Class *c, char *message) {
+    if (c->name[0] == '\0') {
+        printf("!!!ERROR!!!\n-> Cannot send message to an empty class.\n");
+        return -1;
+    }
+    if (c == NULL) {
+        printf("!!!ERROR!!!\n-> Cannot send message to a NULL class.\n");
+        return -2;
+    }
+    if (c->mutilcast_addr.sin_addr.s_addr == 0) {
+        printf("!!!ERROR!!!\n-> Cannot send message to class \"%s\" with invalid multicast address.\n", c->name);
+        return -3;
+    }
+
+    c->multicast_udpsocket = socket(AF_INET, SOCK_DGRAM, 0);
+    if(c->multicast_udpsocket < 0){
+        printf("!!!ERROR!!!\n-> Cannot create socket for class \"%s\".\n", c->name);
+        close(c->multicast_udpsocket);
+        return -4;
+    }
+
+    int ttl = 6;
+    if( setsockopt(c->multicast_udpsocket, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl))<0 ){
+        printf("!!!ERROR!!!\n-> Cannot set TTL for class \"%s\".\n", c->name);
+        close(c->multicast_udpsocket);
+        return -5;
+    }
+
+    if(sendto(c->multicast_udpsocket, message, strlen(message), 0, (struct sockaddr *)&(c->mutilcast_addr), sizeof(c->mutilcast_addr)) < 0){
+        printf("!!!ERROR!!!\n-> Cannot send message to class \"%s\".\n", c->name);
+        close(c->multicast_udpsocket);
+        perror("deu coco");
+        return -6;
+    }
+
+    close(c->multicast_udpsocket);
+    return 0;
+}
 
 #endif

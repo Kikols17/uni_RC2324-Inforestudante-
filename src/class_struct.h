@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#define BASE_MULTICAST_ADDR 0xefff0000
+#define BASE_MULTICAST_ADDR 0xEF000001
 
 
 #ifndef BUF_SIZE
@@ -26,11 +26,13 @@ typedef struct Class {
     int subscribed;
     char subscribed_names[N_USERS][BUF_SIZE];
     struct sockaddr_in mutilcast_addr;
+    int multicast_udpsocket;
 } Class;
 
 
 int create_classstruct(Class *c, int n, char *name, int size);
 int destroy_classstruct(Class *c);
 int addsub_classstruct(Class *c, char *username);
+int sendmsg_classstruct(Class *c, char *message);
 
 #endif

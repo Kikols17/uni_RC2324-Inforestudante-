@@ -587,7 +587,8 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
                 return 1;
             } else {
                 // TODO[META1] create class with name and size
-                sprintf(response+strlen(response), "Now sending message \"%s\" to class \"%s\".\n", arg2, arg1);
+                //sprintf(response+strlen(response), "Now sending message \"%s\" to class \"%s\".\n", arg2, arg1);
+                send_message(user, arg1, arg2, response);
                 return 0;
             }
         } else {

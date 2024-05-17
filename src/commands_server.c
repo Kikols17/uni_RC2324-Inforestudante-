@@ -162,10 +162,15 @@ int logout(struct User *user, char *response) {
      *      1-> user not logged in
      */
     if (user->user_id == -1) {
-        sprintf(response, "User not logged in.\n");
+        // user not logged in
+        sprintf(response+strlen(response), "User not logged in.\n");
         return 1;
     }
-    sprintf(response, "-+!L0G0UT!+-~Logging out user \"%s\".\n", user->name);
+    if (user->type!=ADMINISTRADOR) {
+        // user not admin (NEED TO SEND MESSAGE TO MULTICAST GROUPS TO LEAVE)
+        sprintf(response+strlen(response), "-+!L0G0UT!+-~");
+    }
+    sprintf(response+strlen(response), "Logging out user \"%s\".\n", user->name);
     user->user_id = -1;
     user->name[0] = '\0';
     return 0;

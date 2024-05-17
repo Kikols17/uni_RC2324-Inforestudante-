@@ -74,6 +74,7 @@ int main(int argc, char *argv[]) {
     char buffer_in[BUF_SIZE];       // um buffer para guardar msgs de entrada
     char auxbuffer_in[BUF_SIZE];
     char *arg;
+    char header[BUF_SIZE];
     char buffer_out[BUF_SIZE];      // um buffer para escrever as msgs de saida
     int nread;
 
@@ -101,7 +102,12 @@ int main(int argc, char *argv[]) {
             }
 
         } else {
-            printf("%s", buffer_in);
+            strcpy(auxbuffer_in, buffer_in);
+            arg = strtok(auxbuffer_in, "^");
+            printf("%s", arg);
+            arg = strtok(NULL, "^");
+            strcpy(header, arg);
+            printf("\n\n%s", header);
 
             fgets(buffer_out, BUF_SIZE-1, stdin);                           // }
             buffer_out[strlen(buffer_out)-1] = '\0';    // remove '\n'         }
@@ -152,7 +158,7 @@ void *multicast_listener( void *arg ) {
     bzero((void *)&multicast_addr_struct, sizeof(multicast_addr_struct));
     multicast_addr_struct.sin_family = AF_INET;
     multicast_addr_struct.sin_addr.s_addr = htonl(INADDR_ANY);
-    printf("[DEBUG] SUPOSED PORT: %d\n", 5000 + inet_addr(multicast_addr)%1000);
+    //printf("[DEBUG] SUPOSED PORT: %d\n", 5000 + inet_addr(multicast_addr)%1000);
     multicast_addr_struct.sin_port = htons( 5000 + inet_addr(multicast_addr)%1000 );
 
     if (bind(socketfd, (struct sockaddr *)&multicast_addr_struct, sizeof(multicast_addr_struct)) < 0) {

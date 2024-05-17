@@ -377,11 +377,11 @@ void process_client_tcp(int client_fd_tcp) {
         handle_requests_tcp(&user, buffer_in, buffer_out);
         handle_usecursor(&user, buffer_out);
 
-        msg = strtok(buffer_out, "║");
+        msg = strtok(buffer_out, "~");
         while ( msg!=NULL ) {
             write(client_fd_tcp, msg, 1 + strlen(msg));                     // }
             printf("[TCP]<<<<< TO fd->%d: \"%s\".\n", client_fd_tcp, msg);  // } send response back to the client
-            msg = strtok(NULL, "║");
+            msg = strtok(NULL, "~");
             sleep(1);
         }
 
@@ -754,8 +754,9 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
 void handle_usecursor(struct User *user, char *response) {
     /* Appends to "response" the name of the user, if is logged in */
 
+    sprintf(response+strlen(response), "^");
     if (user->user_id==-1) {
-        sprintf(response+strlen(response), "\n\n\033[1m> ");
+        sprintf(response+strlen(response), "\033[1m");
     } else {
         if (user->type==ALUNO) {
             sprintf(response+strlen(response), "\033[1;34m");
@@ -764,7 +765,6 @@ void handle_usecursor(struct User *user, char *response) {
         } else {
             sprintf(response+strlen(response), "\033[1;31m");
         }
-        sprintf(response+strlen(response), "\n\n%s> ", user->name);
     }
-    sprintf(response+strlen(response), "\033[0m");
+    sprintf(response+strlen(response), "%s>\033[0m ", user->name);
 }

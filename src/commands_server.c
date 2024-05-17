@@ -202,7 +202,7 @@ int subscribe_class(struct User *user, char *class_name, char *response) {
             if ( result==0) {
                 // subscription successful
                 sem_post(class_sem);
-                sprintf(response+strlen(response), "-+!MULT1C4ST!+- %s║", inet_ntoa(classes[i].mutilcast_addr.sin_addr));
+                sprintf(response+strlen(response), "-+!MULT1C4ST!+- %s~", inet_ntoa(classes[i].mutilcast_addr.sin_addr));
                 sprintf(response+strlen(response), "User \"%s\" subscribed to class \"%s\" with multicast <%s>\n", user->name, class_name, inet_ntoa(classes[i].mutilcast_addr.sin_addr));
                 return 0;
             } else if ( result==-1 ) {

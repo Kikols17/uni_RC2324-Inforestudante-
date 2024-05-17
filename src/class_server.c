@@ -45,7 +45,7 @@ void process_client_tcp(int client_fd_tcp);
 void process_admin_udp();
 int handle_requests_tcp(struct User *user, char *request, char *response);
 int handle_requests_udp(struct User *user, char *request, char *response);
-void handle_usecursor(struct User *user, char *response);
+void handle_usecursor(struct User *user, int admin_flag, char *response);
 
 
 
@@ -359,7 +359,7 @@ void process_client_tcp(int client_fd_tcp) {
 
 
     strcpy(buffer_out, welcome_message);
-    handle_usecursor(&user, buffer_out);
+    handle_usecursor(&user, 0, buffer_out);
     write(client_fd_tcp, buffer_out, 1 + strlen(buffer_out));               // } welcome new client
     printf("[TCP]<<<<< WELCOME fd->%d.\n", client_fd_tcp);                  // }
 
@@ -375,7 +375,7 @@ void process_client_tcp(int client_fd_tcp) {
 
         buffer_out[0] = '\0';       // clear response buffer
         handle_requests_tcp(&user, buffer_in, buffer_out);
-        handle_usecursor(&user, buffer_out);
+        handle_usecursor(&user, 0, buffer_out);
 
         msg = strtok(buffer_out, "~");
         while ( msg!=NULL ) {
@@ -422,7 +422,7 @@ void process_admin_udp() {
         } else if ( handle_requests_udp(&user, buf_in, buf_out)==-1 ) {
             running = 0;
         }
-        handle_usecursor(&user, buf_out);
+        handle_usecursor(&user, 1, buf_out);
 
         printf("[UDP]<<<<< TO client port->%d: \"%s\".\n", si_outra.sin_port, buf_out);
         sendto(server_fd_udp, (const char *)buf_out, BUF_SIZE-1, MSG_CONFIRM, (const struct sockaddr *) &si_outra, slen); 
@@ -725,10 +725,14 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
     return 1;
 }
 
-void handle_usecursor(struct User *user, char *response) {
+void handle_usecursor(struct User *user, int admin_flag, char *response) {
     /* Appends to "response" the name of the user, if is logged in */
 
-    sprintf(response+strlen(response), "^");
+    if (admin_flag==0) {
+        sprintf(response+strlen(response), "^");
+    } else {
+        sprintf(response+strlen(response), "\n\n");
+    }
     if (user->user_id==-1) {
         sprintf(response+strlen(response), "\033[1m");
     } else {

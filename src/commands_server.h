@@ -18,7 +18,7 @@ typedef struct User {
 
 
 // Commands for both TCP client and UDP client
-int login(struct User *user, char *user_name, char *password);
+int login(struct User *user, char *user_name, char *password, int admin_flag, char *response);
 int logout(struct User *user, char *response);
 
 // Commands for TCP client

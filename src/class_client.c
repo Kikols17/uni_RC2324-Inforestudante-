@@ -16,16 +16,24 @@
 #define N_CLASSES 16
 #define BASE_MULTICAST_ADDR 0xEF000001
 
+typedef struct MT_listener {
+    int state;
+    pthread_t listener_thread;
+
+    char addr[100];
+    int socketfd;
+    struct ip_mreq group;
+}MT_listener;
+
 
 void handle_sigint();
 void *multicast_listener( void *arg );
+int leave_multicast(int id);
+void log_out();
 
 
 int fd;
-pthread_t mtlisteners_pthreads[N_CLASSES];
-int mtlisteners_state[N_CLASSES];
-int running = 1;
-
+struct MT_listener mtlisteners[N_CLASSES];
 char header[BUF_SIZE];
 
 
@@ -90,14 +98,18 @@ int main(int argc, char *argv[]) {
             printf("SERVER CLOSED\n");
             break;
 
+        } else if ( strcmp(arg, "-+!L0G0UT!+-")==0 ) {
+            // leave all multicast groups
+            log_out();
         } else if ( strcmp(arg, "-+!MULT1C4ST!+-")==0 ) {
             // start multicast listener + skip waiting for user input
             arg = strtok(NULL, " ");        // ip multicast
             // look for empty slot in mtlisteners_state
             for (int i=0; i<N_CLASSES; i++) {
-                if (mtlisteners_state[i]==0) {
-                    pthread_create(&mtlisteners_pthreads[i], NULL, multicast_listener, (void *)arg);
-                    mtlisteners_state[i] = 1;
+                if (mtlisteners[i].state==0) {
+                    mtlisteners[i].state = 1;
+                    strcpy(mtlisteners[i].addr, arg);
+                    pthread_create(&mtlisteners[i].listener_thread, NULL, multicast_listener, (void *)&i);
                     break;
                 }
             }
@@ -119,8 +131,8 @@ int main(int argc, char *argv[]) {
 
     close(fd);
     for (int i=0; i<N_CLASSES; i++) {
-        if (mtlisteners_state[i]==1) {
-            pthread_join(mtlisteners_pthreads[i], NULL);
+        if (mtlisteners[i].state==1) {
+            pthread_cancel(mtlisteners[i].listener_thread);
         }
     }
 
@@ -135,46 +147,46 @@ void handle_sigint() {
     write(fd, "-+!QUIT!+-", 1+strlen("-+!QUIT!+-"));
     printf("\n-> Closing Client\n");
     close(fd);
+    log_out();
     exit(0);
 }
 
 void *multicast_listener( void *arg ) {
-    char multicast_addr[100];
-    strcpy(multicast_addr, (char *)arg);
+    int id = *(int*)arg;
 
-    int socketfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (socketfd == -1) {
+    mtlisteners[id].socketfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (mtlisteners[id].socketfd == -1) {
         printf("!!!ERROR!!!\n-> Could not open client side socket.\n");
         return NULL;
     }
 
     int reuse = 1;
-    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+    if (setsockopt(mtlisteners[id].socketfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
         printf("!!!ERROR!!!\n-> Could not set socket options.\n");
-        close(socketfd);
+        close(mtlisteners[id].socketfd);
         return NULL;
     }
+    
 
     struct sockaddr_in multicast_addr_struct;
     bzero((void *)&multicast_addr_struct, sizeof(multicast_addr_struct));
     multicast_addr_struct.sin_family = AF_INET;
     multicast_addr_struct.sin_addr.s_addr = htonl(INADDR_ANY);
     //printf("[DEBUG] SUPOSED PORT: %d\n", 5000 + inet_addr(multicast_addr)%1000);
-    multicast_addr_struct.sin_port = htons( 5000 + inet_addr(multicast_addr)%1000 );
+    multicast_addr_struct.sin_port = htons( 5000 + inet_addr(mtlisteners[id].addr)%1000 );
 
-    if (bind(socketfd, (struct sockaddr *)&multicast_addr_struct, sizeof(multicast_addr_struct)) < 0) {
+    if (bind(mtlisteners[id].socketfd, (struct sockaddr *)&multicast_addr_struct, sizeof(multicast_addr_struct)) < 0) {
         printf("!!!ERROR!!!\n-> Could not bind socket.\n");
-        close(socketfd);
+        close(mtlisteners[id].socketfd);
         return NULL;
     }
 
     // join multicast group
-    struct ip_mreq group;
-    group.imr_multiaddr.s_addr = inet_addr(multicast_addr);
-    group.imr_interface.s_addr = htonl(INADDR_ANY);
-    if (setsockopt(socketfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &group, sizeof(group)) < 0) {
+    mtlisteners[id].group.imr_multiaddr.s_addr = inet_addr(mtlisteners[id].addr);
+    mtlisteners[id].group.imr_interface.s_addr = htonl(INADDR_ANY);
+    if (setsockopt(mtlisteners[id].socketfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mtlisteners[id].group, sizeof(mtlisteners[id].group)) < 0) {
         printf("!!!ERROR!!!\n-> Could not join multicast group.\n");
-        close(socketfd);
+        close(mtlisteners[id].socketfd);
         return NULL;
     }
 
@@ -187,24 +199,51 @@ void *multicast_listener( void *arg ) {
     while (1) {
         buffer_in[0] = '\0';
         //printf("[DEBUG] Waiting for multicast message\n");
-        if ( (nread=recvfrom(socketfd, buffer_in, BUF_SIZE-1, 0, (struct sockaddr *)&server_addr, &server_addr_len))<0 ) {
+        if ( (nread=recvfrom(mtlisteners[id].socketfd, buffer_in, BUF_SIZE-1, 0, (struct sockaddr *)&server_addr, &server_addr_len))<0 ) {
             printf("!!!ERROR!!!\n-> Could not recieve multicast message.\n");
             break;
         }
         buffer_in[nread] = '\0';
         printf("\x1b[2F\x1b[0J");       // move cursor to start of previous line and clear lines in front
-        printf("FROM MULTICAST: \"%s\"\n", buffer_in);
+        //printf("FROM MULTICAST: \"%s\"\n", buffer_in);
+        printf("%s\n", buffer_in);
         printf("\n\n%s", header);
         fflush(stdout);
     }
 
-    if (setsockopt(socketfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &group, sizeof(group)) < 0) {
+    if (setsockopt(mtlisteners[id].socketfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mtlisteners[id].group, sizeof(mtlisteners[id].group)) < 0) {
         printf("!!!ERROR!!!\n-> Could not leave multicast group.\n");
-        close(socketfd);
+        close(mtlisteners[id].socketfd);
         return NULL;
     }
 
-    close(socketfd);
+    close(mtlisteners[id].socketfd);
     return NULL;
 }
 
+int leave_multicast(int id) {
+    if (mtlisteners[id].state==0) {
+        return 0;
+    }
+    pthread_cancel(mtlisteners[id].listener_thread);
+
+    if (setsockopt(mtlisteners[id].socketfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mtlisteners[id].group, sizeof(mtlisteners[id].group)) < 0) {
+        printf("!!!ERROR!!!\n-> Could not leave multicast group.\n");
+        close(mtlisteners[id].socketfd);
+        return -1;
+    }
+    //printf("LEAVING MULTICAST <%s>\n", mtlisteners[id].addr);
+    mtlisteners[id].state = 0;
+    mtlisteners[id].addr[0] = '\0';
+    mtlisteners[id].socketfd = -1;
+    bzero((void *)&mtlisteners[id].group, sizeof(mtlisteners[id].group));
+
+    close(mtlisteners[id].socketfd);
+    return 0;
+}
+
+void log_out() {
+    for (int i=0; i<N_CLASSES; i++) {
+        leave_multicast(i);
+    }
+}

@@ -24,7 +24,7 @@ extern struct Class *classes;
 extern sem_t *class_sem;
 
 // Commands for both TCP client and UDP client
-int login(struct User *user, char *user_name, char *password) {
+int login(struct User *user, char *user_name, char *password, int admin_flag, char *response) {
     /* Logs in user based on user_name and password from "config_file"
      *
      * return:
@@ -41,19 +41,63 @@ int login(struct User *user, char *user_name, char *password) {
         user->user_id = 0; // TODO: user_id
         strcpy(user->name, user_name);
         printf("Type: \"%s\"\n", type);
-        if (strcmp(type, "aluno") == 0) {
+        if ( strcmp(type, "aluno")==0 ) {
+            if ( admin_flag ) {
+                // cannot log in on this client
+                user->user_id = -1;
+                user->name[0] = '\0';
+                sprintf(response+strlen(response), "User \"%s\" with password \"%s\" must be \"administrador\".\nTry TCP connection for \"aluno\" or \"professor\".\n", user_name, password);
+                return -1;
+            }
+            sprintf(response+strlen(response), "Now logged in as aluno \"%s\" with password \"%s\"\n", user_name, password);
             user->type = ALUNO;
-        } else if (strcmp(type, "professor") == 0) {
+
+        } else if ( strcmp(type, "professor")==0 ) {
+            if ( admin_flag ) {
+                // cannot log in on this client
+                user->user_id = -1;
+                user->name[0] = '\0';
+                sprintf(response+strlen(response), "User \"%s\" with password \"%s\" must be \"administrador\".\nTry TCP connection for \"aluno\" or \"professor\".\n", user_name, password);
+                return -1;
+            }
+            sprintf(response+strlen(response), "Now logged in as professor \"%s\" with password \"%s\"\n", user_name, password);
             user->type = PROFESSOR;
-        } else if (strcmp(type, "administrator") == 0) {
+            return 0;       // return because professor has no classes
+
+        } else if ( strcmp(type, "administrator")==0 ) {
+            if ( !admin_flag ) {
+                // cannot log in on this client
+                user->user_id = -1;
+                user->name[0] = '\0';
+                sprintf(response+strlen(response), "User \"%s\" with password \"%s\" is admin, cannot log in.\nUse UDP connection instead.\n", user_name, password);
+                return -1;
+            }
+            sprintf(response+strlen(response), "Now logged in as administrator \"%s\" with password \"%s\"\n", user_name, password);
             user->type = ADMINISTRADOR;
+            return 0;       // return because admin has no classes
+
         } else {
             // incorrect format
-            printf("pila\n");
             return -1;
         }
+        // user found and is aluno, find classes they're in
+        sem_wait(class_sem);
+        for (int i=0; i<n_classes; i++) {
+            if (classes[i].name[0] == '\0') {
+                // no class on this slot
+                continue;
+            }
+            for (int j=0; j<classes[i].subscribed; j++) {
+                if ( strcmp(classes[i].subscribed_names[j], user->name)==0 ) {
+                    printf("User \"%s\" subscribed to class \"%s\".\n", user->name, classes[i].name);
+                }
+            }
+        }
+        sem_post(class_sem);
+
         return 0;
     } else {
+        sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\"\n", user_name, password);
         return ret;
     }
     
@@ -121,7 +165,7 @@ int logout(struct User *user, char *response) {
         sprintf(response, "User not logged in.\n");
         return 1;
     }
-    sprintf(response, "Logging out user \"%s\".\n", user->name);
+    sprintf(response, "-+!L0G0UT!+-~Logging out user \"%s\".\n", user->name);
     user->user_id = -1;
     user->name[0] = '\0';
     return 0;
@@ -309,7 +353,7 @@ int send_message(struct User *user, char *class_name, char *message, char *respo
             continue;
         } else if (strcmp(classes[i].name, class_name)==0) {
             // class found
-            sprintf(buffer_out, "%s@%s: \"%s\"", user->name, class_name, message);
+            sprintf(buffer_out, "\033[96m%s@%s:\033[0m \"%s\"", user->name, class_name, message);
             ret = sendmsg_classstruct(&classes[i], buffer_out);
             if (ret!=0) {
                 sprintf(response+strlen(response), "!!!ERROR!!!\n-> Could not send message to class \"%s\". ErrN:%d\n", class_name, ret);

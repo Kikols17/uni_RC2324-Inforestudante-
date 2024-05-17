@@ -471,26 +471,11 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGIN <username> <password>\n");
             return 1;
         } else {
-            if (login(user, arg1, arg2)==0 ) {
-                // login sucessful
-                if ( user->type==ADMINISTRADOR ) {
-                    // user is "administrador", reject
-                    sprintf(response+strlen(response), "User \"%s\" with password \"%s\" is admin, cannot log in.\nUse UDP connection instead.\n", arg1, arg2);
-                    user->user_id=-1;           // }
-                    strcpy(user->name, "");     // } reset user;
-                    return 2;
-                } else {
-                    // user is "aluno" ou "professor"
-                    char type[BUF_SIZE];
-                    if ( user->type==ALUNO ) { strcpy(type, "aluno"); }     // } see if is aluno
-                    else { strcpy(type, "professor"); }                     // } / professor
-                    sprintf(response+strlen(response), "Now logged in as %s \"%s\" with password \"%s\"\n", type, arg1, arg2);
-                }
-            } else {
-                // login unsucessful
-                sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\"\n", arg1, arg2);
+            if (login(user, arg1, arg2, 0, response)!=0 ) {
+                // login failed
                 return 2;
             }
+            // login successful
             return 0;
         }
     
@@ -646,23 +631,12 @@ int handle_requests_udp(struct User *user, char *request, char *response) {
             sprintf(response+strlen(response), "-> INVALID ARGUMENTS:\nLOGIN <username> <password>\n");
             return 1;
         } else {
-            if ( login(user, arg1, arg2)==0 ) {
-                // Login successful
-                if ( user->type == ADMINISTRADOR) {
-                    // if user is admin, continue
-                    sprintf(response+strlen(response), "Now logged in as admin \"%s\" with password \"%s\".\n", arg1, arg2);
-                    return 0;
-                } else {
-                    // if user is not admin, revoke login
-                    sprintf(response+strlen(response), "-> INVALID CREDENTIALS:\nto access these features \"%s\" must be \"administrador\".\nTry TCP connection for \"aluno\" or \"professor\".\n", arg1);
-                    user->user_id = -1;     // }
-                    strcpy(user->name, ""); // } reset user
-                    return 2;
-                }
-            } else {
-                // If login fails"
-                sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\".\n", arg1, arg2);
+            if ( login(user, arg1, arg2, 1, response)!=0 ) {
+                // login failed
                 return 2;
+            } else {
+                // login successful
+                return 0;
             }
         }
 

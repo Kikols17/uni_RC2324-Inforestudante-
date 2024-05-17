@@ -202,7 +202,8 @@ int subscribe_class(struct User *user, char *class_name, char *response) {
             if ( result==0) {
                 // subscription successful
                 sem_post(class_sem);
-                sprintf(response+strlen(response), "User \"%s\" subscribed to class \"%s\".\n", user->name, class_name);
+                sprintf(response+strlen(response), "-+!MULT1C4ST!+- %s║", inet_ntoa(classes[i].mutilcast_addr.sin_addr));
+                sprintf(response+strlen(response), "User \"%s\" subscribed to class \"%s\" with multicast <%s>\n", user->name, class_name, inet_ntoa(classes[i].mutilcast_addr.sin_addr));
                 return 0;
             } else if ( result==-1 ) {
                 // class full
@@ -222,8 +223,8 @@ int subscribe_class(struct User *user, char *class_name, char *response) {
             
             }
         } else {
-            // class not found
-            printf("\"%s\" not \"%s\".\n", classes[i].name, class_name);
+            // class not yet found
+            //printf("\"%s\" not \"%s\".\n", classes[i].name, class_name);
         }
     }
     // class not found
@@ -277,7 +278,7 @@ int create_class(char *class_name, int size, char *response) {
         }
         // creation successful, class created
         sem_post(class_sem);
-        sprintf(response + strlen(response), "Class \"%s\" created with size %d and multicast ip:%s.\n", classes[new_index].name, classes[new_index].size, inet_ntoa(classes[new_index].mutilcast_addr.sin_addr));
+        sprintf(response + strlen(response), "Class \"%s\" created with size %d and multicast ip <%s:%d>.\n", classes[new_index].name, classes[new_index].size, inet_ntoa(classes[new_index].mutilcast_addr.sin_addr), classes[new_index].mutilcast_addr.sin_port);
         return new_index;
     }
 }

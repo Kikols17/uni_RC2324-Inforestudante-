@@ -6,17 +6,25 @@
 #include <string.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <pthread.h>
 
 #include <arpa/inet.h>
 #include <signal.h>
+#include <sys/types.h>
 
 #define BUF_SIZE 1024
+#define N_CLASSES 16
+#define BASE_MULTICAST_ADDR 0xEF000001
 
 
 void handle_sigint();
+void *multicast_listener( void *arg );
 
 
 int fd;
+pthread_t mtlisteners_pthreads[N_CLASSES];
+int mtlisteners_state[N_CLASSES];
+int running = 1;
 
 
 int main(int argc, char *argv[]) {
@@ -64,6 +72,8 @@ int main(int argc, char *argv[]) {
 
 
     char buffer_in[BUF_SIZE];       // um buffer para guardar msgs de entrada
+    char auxbuffer_in[BUF_SIZE];
+    char *arg;
     char buffer_out[BUF_SIZE];      // um buffer para escrever as msgs de saida
     int nread;
 
@@ -71,21 +81,41 @@ int main(int argc, char *argv[]) {
         nread = read(fd, buffer_in, BUF_SIZE - 1);      // }
         buffer_in[nread-1] = '\0';                      // } recieve response (and welcome message) from server
         //printf("FROM SERVER: \"%s\"\n", buffer_in);     // }
+        strcpy(auxbuffer_in, buffer_in);
 
-        if ( strcmp(buffer_in, "-+!SERVER-CL0SING!+-")==0 ) {
+        arg = strtok(auxbuffer_in, " ");
+        if ( strcmp(arg, "-+!SERVER-CL0SING!+-")==0 ) {
             printf("SERVER CLOSED\n");
             break;
+
+        } else if ( strcmp(arg, "-+!MULT1C4ST!+-")==0 ) {
+            // start multicast listener + skip waiting for user input
+            arg = strtok(NULL, " ");        // ip multicast
+            // look for empty slot in mtlisteners_state
+            for (int i=0; i<N_CLASSES; i++) {
+                if (mtlisteners_state[i]==0) {
+                    pthread_create(&mtlisteners_pthreads[i], NULL, multicast_listener, (void *)arg);
+                    mtlisteners_state[i] = 1;
+                    break;
+                }
+            }
+
         } else {
             printf("%s", buffer_in);
-        }
 
-        fgets(buffer_out, BUF_SIZE-1, stdin);                           // }
-        buffer_out[strlen(buffer_out)-1] = '\0';    // remove '\n'         }
-        write(fd, buffer_out, 1 + strlen(buffer_out));                  // } send request to server
-        //printf("TO SERVER: \"%s\"\n", buffer_out);                      // }
+            fgets(buffer_out, BUF_SIZE-1, stdin);                           // }
+            buffer_out[strlen(buffer_out)-1] = '\0';    // remove '\n'         }
+            write(fd, buffer_out, 1 + strlen(buffer_out));                  // } send request to server
+            //printf("TO SERVER: \"%s\"\n", buffer_out);                      // }
+        }
     }
 
     close(fd);
+    for (int i=0; i<N_CLASSES; i++) {
+        if (mtlisteners_state[i]==1) {
+            pthread_join(mtlisteners_pthreads[i], NULL);
+        }
+    }
 
     return 0;
 }
@@ -100,3 +130,71 @@ void handle_sigint() {
     close(fd);
     exit(0);
 }
+
+void *multicast_listener( void *arg ) {
+    char multicast_addr[100];
+    strcpy(multicast_addr, (char *)arg);
+
+    int socketfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (socketfd == -1) {
+        printf("!!!ERROR!!!\n-> Could not open client side socket.\n");
+        return NULL;
+    }
+
+    int reuse = 1;
+    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+        printf("!!!ERROR!!!\n-> Could not set socket options.\n");
+        close(socketfd);
+        return NULL;
+    }
+
+    struct sockaddr_in multicast_addr_struct;
+    bzero((void *)&multicast_addr_struct, sizeof(multicast_addr_struct));
+    multicast_addr_struct.sin_family = AF_INET;
+    multicast_addr_struct.sin_addr.s_addr = htonl(INADDR_ANY);
+    printf("[DEBUG] SUPOSED PORT: %d\n", 5000 + inet_addr(multicast_addr)%1000);
+    multicast_addr_struct.sin_port = htons( 5000 + inet_addr(multicast_addr)%1000 );
+
+    if (bind(socketfd, (struct sockaddr *)&multicast_addr_struct, sizeof(multicast_addr_struct)) < 0) {
+        printf("!!!ERROR!!!\n-> Could not bind socket.\n");
+        close(socketfd);
+        return NULL;
+    }
+
+    // join multicast group
+    struct ip_mreq group;
+    group.imr_multiaddr.s_addr = inet_addr(multicast_addr);
+    group.imr_interface.s_addr = htonl(INADDR_ANY);
+    if (setsockopt(socketfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &group, sizeof(group)) < 0) {
+        printf("!!!ERROR!!!\n-> Could not join multicast group.\n");
+        close(socketfd);
+        return NULL;
+    }
+
+
+    char buffer_in[BUF_SIZE];
+    int nread;
+    struct sockaddr_in server_addr;
+    socklen_t server_addr_len = sizeof(server_addr);
+    //printf("[DEBUG] Listening to multicast <%s:%d>\n", multicast_addr, multicast_addr_struct.sin_port);
+    while (1) {
+        buffer_in[0] = '\0';
+        //printf("[DEBUG] Waiting for multicast message\n");
+        if ( (nread=recvfrom(socketfd, buffer_in, BUF_SIZE-1, 0, (struct sockaddr *)&server_addr, &server_addr_len))<0 ) {
+            printf("!!!ERROR!!!\n-> Could not recieve multicast message.\n");
+            break;
+        }
+        buffer_in[nread] = '\0';
+        printf("FROM MULTICAST: \"%s\"\n", buffer_in);
+    }
+
+    if (setsockopt(socketfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &group, sizeof(group)) < 0) {
+        printf("!!!ERROR!!!\n-> Could not leave multicast group.\n");
+        close(socketfd);
+        return NULL;
+    }
+
+    close(socketfd);
+    return NULL;
+}
+

@@ -8,6 +8,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "class_struct.h"
 
@@ -40,7 +41,8 @@ int create_classstruct(Class *c, int n, char *name, int size) {
     bzero(&c->mutilcast_addr, sizeof(c->mutilcast_addr));
     c->mutilcast_addr.sin_family = AF_INET;
     c->mutilcast_addr.sin_addr.s_addr = htonl(BASE_MULTICAST_ADDR + n);
-    c->mutilcast_addr.sin_port = htons(5000+n);
+    c->mutilcast_addr.sin_port = htons(5000 + c->mutilcast_addr.sin_addr.s_addr%1000);
+    //printf("[DEBUG] SUPOSED PORT: %d\n", 5000 + c->mutilcast_addr.sin_addr.s_addr%1000);
     return 0;
 }
 
@@ -110,13 +112,13 @@ int sendmsg_classstruct(Class *c, char *message) {
         return -5;
     }
 
-    if(sendto(c->multicast_udpsocket, message, strlen(message), 0, (struct sockaddr *)&(c->mutilcast_addr), sizeof(c->mutilcast_addr)) < 0){
+    if(sendto(c->multicast_udpsocket, message, strlen(message)+1, 0, (struct sockaddr *)&(c->mutilcast_addr), sizeof(c->mutilcast_addr)) < 0){
         printf("!!!ERROR!!!\n-> Cannot send message to class \"%s\".\n", c->name);
         close(c->multicast_udpsocket);
-        perror("deu coco");
         return -6;
     }
 
+    sleep(1);
     close(c->multicast_udpsocket);
     return 0;
 }

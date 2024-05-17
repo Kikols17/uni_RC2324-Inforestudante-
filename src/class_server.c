@@ -351,6 +351,7 @@ void process_client_tcp(int client_fd_tcp) {
     int nread = 0;
     char buffer_in[BUF_SIZE];       // buffer para guardar msgs de entrada
     char buffer_out[BUF_SIZE];      // buffer para escrever as msgs de saida
+    char *msg;
     char welcome_message[] = "Welcome to Server. Login with:\nLOGIN <user_name> <password>";  // message to be sent in the beggining
 
     struct User user;           // }
@@ -376,9 +377,13 @@ void process_client_tcp(int client_fd_tcp) {
         handle_requests_tcp(&user, buffer_in, buffer_out);
         handle_usecursor(&user, buffer_out);
 
-        write(client_fd_tcp, buffer_out, 1 + strlen(buffer_out));               // }
-        printf("[TCP]<<<<< TO fd->%d: \"%s\".\n", client_fd_tcp, buffer_out);   // } send response back to the client
-        
+        msg = strtok(buffer_out, "║");
+        while ( msg!=NULL ) {
+            write(client_fd_tcp, msg, 1 + strlen(msg));                     // }
+            printf("[TCP]<<<<< TO fd->%d: \"%s\".\n", client_fd_tcp, msg);  // } send response back to the client
+            msg = strtok(NULL, "║");
+            sleep(1);
+        }
 
         fflush(stdout);
     }

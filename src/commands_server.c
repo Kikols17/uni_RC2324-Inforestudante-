@@ -301,13 +301,16 @@ int send_message(struct User *user, char *class_name, char *message, char *respo
      *
      */
     int ret;
+    char buffer_out[BUF_SIZE*2];
     sem_wait(class_sem);
     for (int i=0; i<n_classes; i++) {
         if (classes[i].name[0] == '\0') {
             // no class on this slot
             continue;
         } else if (strcmp(classes[i].name, class_name)==0) {
-            ret = sendmsg_classstruct(&classes[i], message);
+            // class found
+            sprintf(buffer_out, "%s@%s: \"%s\"", user->name, class_name, message);
+            ret = sendmsg_classstruct(&classes[i], buffer_out);
             if (ret!=0) {
                 sprintf(response+strlen(response), "!!!ERROR!!!\n-> Could not send message to class \"%s\". ErrN:%d\n", class_name, ret);
                 sem_post(class_sem);

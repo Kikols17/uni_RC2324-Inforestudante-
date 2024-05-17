@@ -36,6 +36,7 @@ int login(struct User *user, char *user_name, char *password, int admin_flag, ch
 
     int ret;
     char type[BUF_SIZE];
+    char auxbuffer[BUF_SIZE]; auxbuffer[0] = '\0';
     ret = file_finduser(config_file_path, user_name, password, type);
     if (ret == 0) {
         user->user_id = 0; // TODO: user_id
@@ -49,7 +50,7 @@ int login(struct User *user, char *user_name, char *password, int admin_flag, ch
                 sprintf(response+strlen(response), "User \"%s\" with password \"%s\" must be \"administrador\".\nTry TCP connection for \"aluno\" or \"professor\".\n", user_name, password);
                 return -1;
             }
-            sprintf(response+strlen(response), "Now logged in as aluno \"%s\" with password \"%s\"\n", user_name, password);
+            sprintf(auxbuffer, "Now logged in as aluno \"%s\" with password \"%s\"\n", user_name, password);
             user->type = ALUNO;
 
         } else if ( strcmp(type, "professor")==0 ) {
@@ -89,13 +90,14 @@ int login(struct User *user, char *user_name, char *password, int admin_flag, ch
             }
             for (int j=0; j<classes[i].subscribed; j++) {
                 if ( strcmp(classes[i].subscribed_names[j], user->name)==0 ) {
-                    printf("User \"%s\" subscribed to class \"%s\".\n", user->name, classes[i].name);
+                    sprintf(response+strlen(response), "-+!MULT1C4ST!+- %s~", inet_ntoa(classes[i].mutilcast_addr.sin_addr));
                 }
             }
         }
         sem_post(class_sem);
-
+        strcat(response, auxbuffer);        // response is multicast msgs + user login message
         return 0;
+
     } else {
         sprintf(response+strlen(response), "Could not log in user \"%s\" with password \"%s\"\n", user_name, password);
         return ret;

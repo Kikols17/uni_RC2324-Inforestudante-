@@ -304,6 +304,7 @@ void *handle_tcp(void *PORTO_TURMAS_ptr) {
             for (int i=1; i<N_USERS+1; i++) {
                 if (child_pids[i]==0) {
                     child_pids[i] = pid;
+                    break;
                 }
             }
             child_pids[0]++;

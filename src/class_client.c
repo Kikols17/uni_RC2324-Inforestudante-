@@ -26,6 +26,8 @@ pthread_t mtlisteners_pthreads[N_CLASSES];
 int mtlisteners_state[N_CLASSES];
 int running = 1;
 
+char header[BUF_SIZE];
+
 
 int main(int argc, char *argv[]) {
     int PORTO_TURMAS;
@@ -74,7 +76,6 @@ int main(int argc, char *argv[]) {
     char buffer_in[BUF_SIZE];       // um buffer para guardar msgs de entrada
     char auxbuffer_in[BUF_SIZE];
     char *arg;
-    char header[BUF_SIZE];
     char buffer_out[BUF_SIZE];      // um buffer para escrever as msgs de saida
     int nread;
 
@@ -191,7 +192,10 @@ void *multicast_listener( void *arg ) {
             break;
         }
         buffer_in[nread] = '\0';
+        printf("\x1b[2F\x1b[0J");       // move cursor to start of previous line and clear lines in front
         printf("FROM MULTICAST: \"%s\"\n", buffer_in);
+        sleep(1);
+        printf("\n\n%s", header);
     }
 
     if (setsockopt(socketfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &group, sizeof(group)) < 0) {

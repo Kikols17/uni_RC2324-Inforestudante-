@@ -360,7 +360,7 @@ int send_message(struct User *user, char *class_name, char *message, char *respo
             continue;
         } else if (strcmp(classes[i].name, class_name)==0) {
             // class found
-            sprintf(buffer_out, "\033[96m%s@%s:\033[0m \"%s\"", user->name, class_name, message);
+            sprintf(buffer_out, "\033[106m\033[30m%s@%s:\033[0m \033[96m\"%s\"\033[0m", user->name, class_name, message);
             ret = sendmsg_classstruct(&classes[i], buffer_out);
             if (ret!=0) {
                 sprintf(response+strlen(response), "!!!ERROR!!!\n-> Could not send message to class \"%s\". ErrN:%d\n", class_name, ret);

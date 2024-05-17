@@ -43,6 +43,7 @@ void *handle_udp(void *PORTO_CONFIG);
 
 void process_client_tcp(int client_fd_tcp);
 void process_admin_udp();
+
 int handle_requests_tcp(struct User *user, char *request, char *response);
 int handle_requests_udp(struct User *user, char *request, char *response);
 void handle_usecursor(struct User *user, int admin_flag, char *response);

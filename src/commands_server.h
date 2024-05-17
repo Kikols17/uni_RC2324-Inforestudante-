@@ -23,7 +23,7 @@ int logout(struct User *user, char *response);
 
 // Commands for TCP client
 int list_cmds_tcp(char *response);
-int list_classes(char *response);
+int list_classes(struct User *user, char *response);
 int list_subscribe(struct User *user, char *response);
 int subscribe_class(struct User *user, char *class_name, char *response);
 int create_class(char *class_name, int size, char *response);

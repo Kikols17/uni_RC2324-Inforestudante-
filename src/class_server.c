@@ -523,7 +523,7 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
         } else {
             // TODO[META1]  list all classes
             //sprintf(response+strlen(response), "Now listing classes for user ID:%d, name:\"%s\".\n", user->user_id, user->name);
-            list_classes(response);
+            list_classes(user, response);
             return 0;
         }
 

@@ -145,17 +145,28 @@ int list_cmds_tcp(char *response) {
     return 0;
 }
 
-int list_classes(char *response) {
+int list_classes(struct User *user, char *response) {
     /* Lists all classes */
     response[0] = '\0'; // clear response buffer
     sem_wait(class_sem);
     sprintf(response + strlen(response), "List of classes:\n");
-    for (int i = 0; i < n_classes; i++) {
+    int flag;
+    for (int i=0; i<n_classes; i++) {
+        flag = 0;
         if (classes[i].name[0] == '\0') {
             // no class on this slot
             continue;
         }
-        if (classes[i].size==classes[i].subscribed) {
+        for (int j=0; j<classes[i].size; j++) {
+            if ( strcmp(classes[i].subscribed_names[j], user->name)==0 ) {
+                // user is subscribed to this class, paint green
+                flag = 1;
+                sprintf(response+strlen(response), "\033[1;32m");
+                break;
+            }
+        }
+        if (!flag  &&  classes[i].size==classes[i].subscribed) {
+            // class full and user is not subscribed, paint red
             sprintf(response+strlen(response), "\033[1;31m");
         }
         sprintf(response+strlen(response), "\t- \"%s\"\tvacant-%d\tmc_ip:%s\n", classes[i].name, classes[i].size-classes[i].subscribed, inet_ntoa(classes[i].mutilcast_addr.sin_addr));

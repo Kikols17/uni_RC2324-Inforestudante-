@@ -194,8 +194,8 @@ void *multicast_listener( void *arg ) {
         buffer_in[nread] = '\0';
         printf("\x1b[2F\x1b[0J");       // move cursor to start of previous line and clear lines in front
         printf("FROM MULTICAST: \"%s\"\n", buffer_in);
-        sleep(1);
         printf("\n\n%s", header);
+        fflush(stdout);
     }
 
     if (setsockopt(socketfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &group, sizeof(group)) < 0) {

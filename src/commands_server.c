@@ -253,6 +253,11 @@ int subscribe_class(struct User *user, char *class_name, char *response) {
      *       1-> subscription failed (class full / already subscribed)
      */
     int result;
+    if (user->type==PROFESSOR) {
+        // professor cannot subscribe to classes
+        sprintf(response+strlen(response), "!!!ERROR!!!\n-> Professor \"%s\" cannot subscribe to classes.\n", user->name);
+        return -1;
+    }
     sem_wait(class_sem);
     for (int i=0; i<n_classes; i++) {
         if ( classes[i].name[0] == '\0') {

@@ -538,8 +538,13 @@ int handle_requests_tcp(struct User *user, char *request, char *response) {
             return 1;
         } else {
             // TODO[META1] subscribe user to class
-            subscribe_class(user, arg1, response);
-            return 0;
+            if (subscribe_class(user, arg1, response)==0 ) {
+                // subscribe successful
+                return 0;
+            } else {
+                // subscribe failed
+                return 2;
+            }
         }
         
 

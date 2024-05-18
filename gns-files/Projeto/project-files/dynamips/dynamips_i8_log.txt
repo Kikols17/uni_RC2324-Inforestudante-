@@ -1,0 +1,53 @@
+May 15 18:18:34.238 HYPERVISOR: Release 0.2.23-amd64/Linux (tag 2023010200)
+May 15 18:18:34.238 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 53841.
+May 15 18:18:34.251 HYPERVISOR: exec_cmd: hypervisor version 
+May 15 18:18:34.252 HYPERVISOR: exec_cmd: hypervisor working_dir /home/user/Documents/GitHub/RC-PROJETO/gns-files/Projeto/project-files/dynamips 
+May 15 18:18:34.252 GENERAL: working_dir=/home/user/Documents/GitHub/RC-PROJETO/gns-files/Projeto/project-files/dynamips
+May 15 18:18:34.252 HYPERVISOR: exec_cmd: hypervisor working_dir /home/user/Documents/GitHub/RC-PROJETO/gns-files/Projeto/project-files/dynamips/5ab3e953-8a74-4105-b992-4abca21cb343 
+May 15 18:18:34.252 GENERAL: working_dir=/home/user/Documents/GitHub/RC-PROJETO/gns-files/Projeto/project-files/dynamips/5ab3e953-8a74-4105-b992-4abca21cb343
+May 15 18:18:34.252 HYPERVISOR: exec_cmd: vm create R3 3 c2691 
+May 15 18:18:34.254 VM: VM R3 created.
+May 15 18:18:34.254 HYPERVISOR: exec_cmd: vm set_con_tcp_port R3 5013 
+May 15 18:18:34.254 HYPERVISOR: exec_cmd: c2691 get_mac_addr R3 
+May 15 18:18:34.255 HYPERVISOR: exec_cmd: vm set_disk0 R3 0 
+May 15 18:18:34.255 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 18:18:34.256 HYPERVISOR: exec_cmd: vm set_idle_pc R3 0x60bcf9f8 
+May 15 18:18:34.256 HYPERVISOR: exec_cmd: vm set_ios R3 /home/user/GNS3/images/IOS/c2691-adventerprisek9-mz.124-15.T14.image 
+May 15 18:18:34.257 HYPERVISOR: exec_cmd: c2691 set_mac_addr R3 c003.0b1c.0000 
+May 15 18:18:34.257 HYPERVISOR: exec_cmd: vm set_nvram R3 256 
+May 15 18:18:34.257 HYPERVISOR: exec_cmd: vm set_ram R3 192 
+May 15 18:18:34.258 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 18:18:34.258 HYPERVISOR: exec_cmd: vm slot_add_binding R3 1 0 NM-1FE-TX 
+May 15 18:18:34.258 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 18:18:34.258 HYPERVISOR: exec_cmd: vm slot_add_binding R3 0 16 WIC-1T 
+May 15 18:18:34.259 HYPERVISOR: exec_cmd: vm set_con_tcp_port R3 5013 
+May 15 18:18:36.118 HYPERVISOR: exec_cmd: nio create_udp udp-2feeb7c0-b405-4dbc-b0a0-4f182ceb4c52 10042 127.0.0.1 10043 
+May 15 18:18:36.342 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R3 0 0 udp-2feeb7c0-b405-4dbc-b0a0-4f182ceb4c52 
+May 15 18:18:36.343 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 18:18:36.439 HYPERVISOR: exec_cmd: nio create_udp udp-47ba6e34-867d-4a40-8d1a-f5bd0f160a60 10046 127.0.0.1 10047 
+May 15 18:18:36.441 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R3 0 1 udp-47ba6e34-867d-4a40-8d1a-f5bd0f160a60 
+May 15 18:18:36.442 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 18:25:33.355 HYPERVISOR: exec_cmd: vm set_ghost_status R3 2 
+May 15 18:25:33.358 HYPERVISOR: exec_cmd: vm set_ghost_file R3 /home/user/Documents/GitHub/RC-PROJETO/gns-files/Projeto/project-files/dynamips/c2691-adventerprisek9-mz.124-15.T14.image-192.ghost 
+May 15 18:25:33.363 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 18:25:33.415 HYPERVISOR: exec_cmd: vm set_config R3 configs/i3_startup-config.cfg 
+May 15 18:25:33.418 HYPERVISOR: exec_cmd: vm start R3 
+May 15 18:26:33.704 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 18:26:33.708 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 21:39:19.239 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 21:39:19.248 HYPERVISOR: exec_cmd: vm stop R3 
+May 15 21:39:19.370 VM: VM R3 shutdown.
+May 15 21:39:19.379 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 21:48:43.396 HYPERVISOR: exec_cmd: vm set_ghost_status R3 2 
+May 15 21:48:43.409 HYPERVISOR: exec_cmd: vm set_ghost_file R3 /home/user/Documents/GitHub/RC-PROJETO/gns-files/Projeto/project-files/dynamips/c2691-adventerprisek9-mz.124-15.T14.image-192.ghost 
+May 15 21:48:43.462 HYPERVISOR: exec_cmd: vm get_status R3 
+May 15 21:48:43.481 HYPERVISOR: exec_cmd: vm set_config R3 configs/i3_startup-config.cfg 
+May 15 21:48:43.485 HYPERVISOR: exec_cmd: vm start R3 
+May 15 21:49:43.723 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 21:49:43.727 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 22:13:43.858 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 22:13:43.862 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 22:16:43.904 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 22:16:43.912 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 22:19:13.976 HYPERVISOR: exec_cmd: vm extract_config R3 
+May 15 22:19:13.981 HYPERVISOR: exec_cmd: vm extract_config R3 

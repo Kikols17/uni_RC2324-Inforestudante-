@@ -18,18 +18,22 @@ typedef struct User {
 
 
 // Commands for both TCP client and UDP client
-int login(struct User *user, char *user_name, char *password);
+int login(struct User *user, char *user_name, char *password, int admin_flag, char *response);
+int logout(struct User *user, char *response);
 
 // Commands for TCP client
+int list_cmds_tcp(char *response);
 int list_classes(struct User *user, char *response);
 int list_subscribe(struct User *user, char *response);
-int subscribe_class(struct User *user, char *class_name);
-int create_class(struct User *user, char *class_name, int size);
-int send_message(struct User *user, char *class_name, char *message);
+int subscribe_class(struct User *user, char *class_name, char *response);
+int create_class(char *class_name, int size, char *response);
+int send_message(struct User *user, char *class_name, char *message, char *response);
 
-int add_user(struct User *user, char *user_name, char *password, char* type);
-int del_user(struct User *user, char *user_name);
-int list_users(struct User *user);
+// Commands for UDP client
+int list_cmds_udp(char *response);
+int add_user(struct User *user, char *user_name, char *password, char* type, char *response);
+int del_user(struct User *user, char *user_name, char *response);
+int list_users(char *response);
 
 
 #endif

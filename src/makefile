@@ -30,10 +30,10 @@ class_server: class_server.o commands_server.o class_struct.o file_manager.o
 	gcc -Wall -Wextra class_server.o commands_server.o class_struct.o file_manager.o -pthread -o class_server
 
 class_client: class_client.o
-	gcc -Wall -Wextra class_client.o -o class_client
+	gcc -Wall -Wextra class_client.o -pthread -o class_client
 
 class_admin: class_admin.o
-	gcc -Wall -Wextra class_admin.o -o class_admin
+	gcc -Wall -Wextra class_admin.o -pthread -o class_admin
 
 
 

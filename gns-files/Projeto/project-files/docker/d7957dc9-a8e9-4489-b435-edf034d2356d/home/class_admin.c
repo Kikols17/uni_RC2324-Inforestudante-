@@ -50,11 +50,7 @@ int main(int argc, char *argv[]) {
     char buf_out[BUF_SIZE];
     char buf_in[BUF_SIZE];
 
-    sprintf(buf_out, "-+!HELLO!+-");
-    if (sendto(socket_fd, buf_out, BUF_SIZE-1, 0, (struct sockaddr *)&server_addr, slen) == -1) {
-        printf("!!!ERROR!!!\n-> Could not send message.\n");
-        exit(1);
-    }
+	sprintf(buf_out, "-+!HELLO!+-");
     if (sendto(socket_fd, buf_out, BUF_SIZE-1, 0, (struct sockaddr *)&server_addr, slen) == -1) {
         printf("!!!ERROR!!!\n-> Could not send message.\n");
         exit(1);

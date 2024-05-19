@@ -55,10 +55,6 @@ int main(int argc, char *argv[]) {
         printf("!!!ERROR!!!\n-> Could not send message.\n");
         exit(1);
     }
-    if (sendto(socket_fd, buf_out, BUF_SIZE-1, 0, (struct sockaddr *)&server_addr, slen) == -1) {
-        printf("!!!ERROR!!!\n-> Could not send message.\n");
-        exit(1);
-    }
 
     while (1) {
 
